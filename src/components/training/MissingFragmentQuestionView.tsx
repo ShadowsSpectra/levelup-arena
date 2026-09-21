@@ -13,11 +13,17 @@ export function MissingFragmentQuestionView(
 ) {
   return (
     <>
-      <h1 className="question-title">{props.question.question}</h1>
-      <blockquote className="question-excerpt missing-fragment">
+      <h1 className="question-situation question-fragment">
         {props.question.phraseTemplate}
-      </blockquote>
-      <AnswerOptions {...props} {...props.question} />
+      </h1>
+      <p className="question-instruction">{props.question.question}</p>
+      <AnswerOptions
+        answers={props.question.answers}
+        confirmed={props.confirmed}
+        correctAnswer={props.question.correctAnswer}
+        selectedAnswer={props.selectedAnswer}
+        onSelect={props.onSelect}
+      />
     </>
   )
 }

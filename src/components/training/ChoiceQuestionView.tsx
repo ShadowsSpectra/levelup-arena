@@ -11,8 +11,15 @@ type ChoiceQuestionViewProps = {
 export function ChoiceQuestionView(props: ChoiceQuestionViewProps) {
   return (
     <>
-      <h1 className="question-title">{props.question.question}</h1>
-      <AnswerOptions {...props} {...props.question} />
+      <h1 className="question-situation">{props.question.question}</h1>
+      <p className="question-instruction">Выберите лучший вариант ответа.</p>
+      <AnswerOptions
+        answers={props.question.answers}
+        confirmed={props.confirmed}
+        correctAnswer={props.question.correctAnswer}
+        selectedAnswer={props.selectedAnswer}
+        onSelect={props.onSelect}
+      />
     </>
   )
 }

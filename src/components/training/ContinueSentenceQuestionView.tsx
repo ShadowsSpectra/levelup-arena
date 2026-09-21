@@ -13,12 +13,18 @@ export function ContinueSentenceQuestionView(
 ) {
   return (
     <>
-      <p className="question-context">{props.question.context}</p>
-      <h1 className="question-title">{props.question.question}</h1>
+      <h1 className="question-situation">{props.question.context}</h1>
+      <p className="question-instruction">{props.question.question}</p>
       <blockquote className="question-excerpt sentence-start">
         {props.question.sentenceStart}
       </blockquote>
-      <AnswerOptions {...props} {...props.question} />
+      <AnswerOptions
+        answers={props.question.answers}
+        confirmed={props.confirmed}
+        correctAnswer={props.question.correctAnswer}
+        selectedAnswer={props.selectedAnswer}
+        onSelect={props.onSelect}
+      />
     </>
   )
 }

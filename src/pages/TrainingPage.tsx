@@ -6,13 +6,6 @@ import type { Role } from '../config/roles'
 import { trainingPassScore } from '../services/trainingEngine'
 import { useTrainingSession } from '../state/useTrainingSession'
 
-const typeLabels = {
-  choice: 'Choice',
-  continue_sentence: 'Continue Sentence',
-  find_mistake: 'Find Mistake',
-  missing_fragment: 'Missing Fragment',
-} as const
-
 type TrainingPageProps = {
   role: Role
   onBack: () => void
@@ -58,14 +51,17 @@ export function TrainingPage({ role, onBack, onChangeRole }: TrainingPageProps) 
             <button className="back-button" type="button" onClick={onBack}>
               ← Выйти из Training
             </button>
-            <span className="training-progress">
-              {training.currentIndex + 1} / {training.questions.length}
-            </span>
           </div>
 
           <div
             className="training-progress-track"
-            aria-label={`Задание ${training.currentIndex + 1} из ${training.questions.length}`}
+            aria-label="Прогресс Training"
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={Math.round(
+              ((training.currentIndex + 1) / training.questions.length) * 100,
+            )}
+            role="progressbar"
           >
             <span
               style={{
@@ -75,11 +71,6 @@ export function TrainingPage({ role, onBack, onChangeRole }: TrainingPageProps) 
           </div>
 
           <section className="question-panel">
-            <div className="question-meta">
-              <span>{typeLabels[training.currentQuestion.type]}</span>
-              <span>{training.currentQuestion.skill}</span>
-            </div>
-
             <QuestionRenderer
               confirmed={training.answerConfirmed}
               question={training.currentQuestion}
