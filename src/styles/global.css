@@ -24,6 +24,7 @@ h1, h2, p { margin-top: 0; }
 .primary-button:hover { background: #354cb9; }
 .secondary-button { border-color: #d7dae2; background: #eceef2; color: #7b8291; }
 .secondary-button:disabled { cursor: not-allowed; }
+.primary-button:disabled { background: #aeb5d5; cursor: not-allowed; }
 .text-button, .back-button { padding: 0; border: 0; background: transparent; color: #445ccc; font-weight: 650; cursor: pointer; }
 .text-button:hover, .back-button:hover { text-decoration: underline; }
 .section-kicker, .step-label { color: #445ccc; font-size: .78rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
@@ -80,6 +81,280 @@ h1, h2, p { margin-top: 0; }
 .back-button { align-self: flex-start; margin-top: 56px; }
 .placeholder-content { max-width: 680px; margin: auto 0; padding: 80px 0; }
 
+.training-page,
+.training-result-page,
+.training-message {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  padding: 48px 28px 80px;
+}
+
+.training-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.training-progress {
+  color: #555e6e;
+  font-size: .9rem;
+  font-weight: 750;
+}
+
+.training-progress-track {
+  width: 100%;
+  height: 4px;
+  margin-top: 22px;
+  overflow: hidden;
+  background: #dfe2e8;
+}
+
+.training-progress-track span {
+  display: block;
+  height: 100%;
+  background: #445ccc;
+  transition: width 180ms ease;
+}
+
+.question-panel {
+  margin-top: 48px;
+}
+
+.question-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-bottom: 18px;
+  color: #6b7383;
+  font-size: .78rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.question-meta span + span::before {
+  margin-right: 20px;
+  color: #c2c6cf;
+  content: "•";
+}
+
+.question-title {
+  max-width: 790px;
+  margin-bottom: 24px;
+  font-size: clamp(1.7rem, 4vw, 2.55rem);
+  line-height: 1.2;
+  letter-spacing: -.035em;
+}
+
+.question-context {
+  max-width: 760px;
+  margin-bottom: 20px;
+  color: #626a7a;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.question-excerpt {
+  max-width: 790px;
+  margin: 0 0 28px;
+  padding: 20px 22px;
+  border-left: 3px solid #445ccc;
+  background: #eef1fb;
+  color: #2d3547;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.sentence-start,
+.missing-fragment {
+  font-weight: 650;
+}
+
+.answer-options {
+  display: grid;
+  gap: 10px;
+}
+
+.answer-option {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 34px 1fr;
+  align-items: start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #d9dde5;
+  border-radius: 7px;
+  background: #fff;
+  color: #2a3243;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+
+.answer-option:hover:not(:disabled) {
+  border-color: #8c98d5;
+  background: #f7f8fc;
+}
+
+.answer-option.is-selected {
+  border-color: #445ccc;
+  background: #f1f3fc;
+}
+
+.answer-option.is-correct {
+  border-color: #2e8b62;
+  background: #edf8f2;
+}
+
+.answer-option.is-incorrect {
+  border-color: #c95e5e;
+  background: #fff1f1;
+}
+
+.answer-option:disabled {
+  color: inherit;
+  cursor: default;
+  opacity: 1;
+}
+
+.answer-letter {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid #ccd1dc;
+  color: #555e6e;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.check-answer-button,
+.next-question-button {
+  margin-top: 24px;
+}
+
+.answer-feedback {
+  margin-top: 28px;
+  padding: 22px;
+  border-left: 3px solid #c95e5e;
+  background: #fff5f5;
+}
+
+.answer-feedback.is-correct {
+  border-left-color: #2e8b62;
+  background: #edf8f2;
+}
+
+.answer-feedback strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1.05rem;
+}
+
+.answer-feedback p {
+  margin-bottom: 8px;
+  color: #465063;
+  line-height: 1.6;
+}
+
+.answer-feedback p:last-child {
+  margin-bottom: 0;
+}
+
+.answer-feedback p span {
+  font-weight: 750;
+}
+
+.training-message {
+  padding-top: 100px;
+}
+
+.training-message h1 {
+  margin: 14px 0 16px;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: -.04em;
+}
+
+.training-message p {
+  max-width: 620px;
+  margin-bottom: 28px;
+  color: #626a7a;
+  line-height: 1.65;
+}
+
+.training-result-page {
+  display: grid;
+  min-height: calc(100vh - 76px);
+  place-items: center;
+}
+
+.result-summary {
+  width: min(100%, 680px);
+  padding: 48px 0;
+}
+
+.result-score {
+  margin-top: 18px;
+  color: #445ccc;
+  font-size: clamp(4rem, 12vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -.07em;
+  line-height: 1;
+}
+
+.result-summary h1 {
+  margin: 18px 0 12px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -.04em;
+}
+
+.result-summary > p {
+  color: #626a7a;
+  line-height: 1.6;
+}
+
+.result-status {
+  margin: 28px 0 16px;
+  padding: 18px;
+  border-left: 3px solid #c38532;
+  background: #fff7e8;
+  color: #574629;
+  line-height: 1.55;
+}
+
+.result-status.is-passed {
+  border-left-color: #2e8b62;
+  background: #edf8f2;
+  color: #285c46;
+}
+
+.result-note {
+  font-size: .9rem;
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.secondary-action-button {
+  min-height: 46px;
+  padding: 11px 18px;
+  border: 1px solid #cbd0da;
+  border-radius: 7px;
+  background: #fff;
+  color: #333c4e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-action-button:hover {
+  background: #f3f4f7;
+}
+
 @media (max-width: 860px) {
   .app-header { align-items: flex-start; flex-direction: column; padding: 18px 24px; }
   .player-stats { width: 100%; justify-content: space-between; }
@@ -104,4 +379,10 @@ h1, h2, p { margin-top: 0; }
   .xp-track { flex: 1; }
   .home-content { padding-top: 56px; padding-bottom: 56px; }
   .activity { padding: 24px; }
+  .training-page, .training-result-page, .training-message { padding-right: 20px; padding-left: 20px; }
+  .question-panel { margin-top: 34px; }
+  .question-meta span + span::before { display: none; }
+  .answer-option { grid-template-columns: 30px 1fr; padding: 14px; }
+  .result-actions { flex-direction: column; }
+  .result-actions button { width: 100%; }
 }

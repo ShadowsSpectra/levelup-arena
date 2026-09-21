@@ -1,7 +1,7 @@
 import { OnboardingPage } from './pages/OnboardingPage'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
-import { TrainingPlaceholderPage } from './pages/TrainingPlaceholderPage'
+import { TrainingPage } from './pages/TrainingPage'
 import { useAppState } from './state/useAppState'
 
 export function App() {
@@ -28,7 +28,13 @@ export function App() {
   }
 
   if (screen === 'training') {
-    return <TrainingPlaceholderPage role={selectedRole} onBack={openHome} />
+    return (
+      <TrainingPage
+        role={selectedRole}
+        onBack={openHome}
+        onChangeRole={changeRole}
+      />
+    )
   }
 
   return (
