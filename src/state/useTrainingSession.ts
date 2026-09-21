@@ -6,6 +6,7 @@ import {
   createTrainingAnswer,
   createTrainingResult,
 } from '../services/trainingEngine'
+import type { TrainingAward } from '../services/progression'
 import type {
   TrainingAnswer,
   TrainingQuestion,
@@ -14,7 +15,11 @@ import type {
 
 type TrainingStatus = 'loading' | 'ready' | 'empty' | 'result' | 'error'
 
-export function useTrainingSession(role: RoleId, level: number) {
+export function useTrainingSession(
+  role: RoleId,
+  level: number,
+  onComplete: (result: TrainingResult, questions: TrainingQuestion[]) => TrainingAward,
+) {
   const [status, setStatus] = useState<TrainingStatus>('loading')
   const [questions, setQuestions] = useState<TrainingQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -22,8 +27,11 @@ export function useTrainingSession(role: RoleId, level: number) {
   const [answerConfirmed, setAnswerConfirmed] = useState(false)
   const [answers, setAnswers] = useState<TrainingAnswer[]>([])
   const [result, setResult] = useState<TrainingResult | null>(null)
+  const [award, setAward] = useState<TrainingAward | null>(null)
   const [runNumber, setRunNumber] = useState(0)
   const previousQuestionIds = useRef<string[]>([])
+  const sessionLevel = useRef(level)
+  const completionRecorded = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -34,7 +42,7 @@ export function useTrainingSession(role: RoleId, level: number) {
       try {
         const nextQuestions = await createTraining({
           role,
-          level,
+          level: sessionLevel.current,
           source: localQuestionSource,
           previousQuestionIds: previousQuestionIds.current,
         })
@@ -47,6 +55,8 @@ export function useTrainingSession(role: RoleId, level: number) {
         setAnswerConfirmed(false)
         setAnswers([])
         setResult(null)
+        setAward(null)
+        completionRecorded.current = false
         setStatus(nextQuestions.length === 0 ? 'empty' : 'ready')
       } catch (error) {
         if (import.meta.env.DEV) console.error('[Training] Failed to create training.', error)
@@ -59,7 +69,7 @@ export function useTrainingSession(role: RoleId, level: number) {
     return () => {
       cancelled = true
     }
-  }, [level, role, runNumber])
+  }, [role, runNumber])
 
   const currentQuestion = questions[currentIndex] ?? null
 
@@ -79,7 +89,11 @@ export function useTrainingSession(role: RoleId, level: number) {
     if (!answerConfirmed) return
 
     if (currentIndex === questions.length - 1) {
-      setResult(createTrainingResult(answers))
+      if (completionRecorded.current) return
+      completionRecorded.current = true
+      const completedResult = createTrainingResult(answers)
+      setAward(onComplete(completedResult, questions))
+      setResult(completedResult)
       setStatus('result')
       return
     }
@@ -91,6 +105,7 @@ export function useTrainingSession(role: RoleId, level: number) {
 
   function restart() {
     previousQuestionIds.current = questions.map((question) => question.id)
+    sessionLevel.current = level
     setRunNumber((current) => current + 1)
   }
 
@@ -102,6 +117,7 @@ export function useTrainingSession(role: RoleId, level: number) {
     selectedAnswer,
     answerConfirmed,
     result,
+    award,
     selectAnswer,
     confirmAnswer,
     goNext,

@@ -1,16 +1,17 @@
-import { initialRoleStats } from '../config/displayDefaults'
+import { energyRules } from '../config/progression'
 import type { Role } from '../config/roles'
+import type { getRoleProgress } from '../services/progression'
 import { Brand } from './Brand'
 
 type AppHeaderProps = {
   role: Role
+  roleProgress: ReturnType<typeof getRoleProgress>
+  energy: number
+  streak: number
   onChangeRole: () => void
 }
 
-export function AppHeader({ role, onChangeRole }: AppHeaderProps) {
-  const stats = initialRoleStats
-  const progress = Math.round((stats.xp / stats.nextLevelXp) * 100)
-
+export function AppHeader({ role, roleProgress, energy, streak, onChangeRole }: AppHeaderProps) {
   return (
     <header className="app-header">
       <div className="header-main">
@@ -25,17 +26,26 @@ export function AppHeader({ role, onChangeRole }: AppHeaderProps) {
 
       <div className="player-stats" aria-label="Прогресс роли">
         <div className="level-stat">
-          <span>Level {stats.level}</span>
-          <div className="xp-track" aria-label={`${stats.xp} из ${stats.nextLevelXp} XP`}>
-            <span className="xp-fill" style={{ width: `${progress}%` }} />
+          <span>Level {roleProgress.level}</span>
+          <div
+            className="xp-track"
+            aria-label={roleProgress.nextLevelXp === null
+              ? `${roleProgress.xp} XP, максимальный уровень`
+              : `${roleProgress.xp} из ${roleProgress.nextLevelXp} XP`}
+          >
+            <span className="xp-fill" style={{ width: `${roleProgress.progressPercent}%` }} />
           </div>
-          <span className="stat-detail">{stats.xp}/{stats.nextLevelXp} XP</span>
+          <span className="stat-detail">
+            {roleProgress.nextLevelXp === null
+              ? `${roleProgress.xp} XP`
+              : `${roleProgress.xp}/${roleProgress.nextLevelXp} XP`}
+          </span>
         </div>
         <span className="stat-item" title="Energy">
-          ⚡ {stats.energy}/{stats.maxEnergy}
+          ⚡ {energy}/{energyRules.maximum}
         </span>
         <span className="stat-item" title="Streak">
-          🔥 {stats.streak}
+          🔥 {streak}
         </span>
       </div>
     </header>

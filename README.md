@@ -1,6 +1,6 @@
 # LevelUP Arena
 
-Минимальный технический фундамент веб-приложения на React, TypeScript и Vite.
+Игровой тренажёр переговоров на React, TypeScript и Vite.
 
 ## Локальный запуск
 
@@ -14,6 +14,7 @@
 
 - `npm run dev` — запустить приложение для разработки.
 - `npm run typecheck` — проверить TypeScript.
+- `npm test` — проверить правила Training и прогрессии.
 - `npm run build` — собрать production-версию.
 - `npm run preview` — локально открыть собранную production-версию.
 
@@ -34,9 +35,19 @@
 `"active": false`.
 
 Поле `correctAnswer` содержит индекс правильного варианта и начинается с нуля:
-`0` — первый ответ, `1` — второй, `2` — третий. После редактирования запустите
+`0` — первый ответ, `1` — второй, `2` — третий, `3` — четвёртый. После редактирования запустите
 `npm run typecheck` и `npm run build`.
 
 Приложение получает контент через интерфейс `QuestionSource` в
 `src/content/questionSource.ts`. В будущем локальную реализацию можно заменить
 источником из облачной таблицы, не меняя Training UI и Training Engine.
+
+## Прогрессия
+
+Пороги уровней и правила Energy находятся в `src/config/progression.ts`.
+Начисление XP, streak и разблокировка Arena рассчитываются в
+`src/services/progression.ts`, отдельно от Training UI. XP и Arena Unlock
+принадлежат выбранной роли; Energy и streak общие.
+
+Данные сохраняются локально в браузере под ключом
+`levelup-arena:progression-v1`. Авторизация и сервер пока не используются.

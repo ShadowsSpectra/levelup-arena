@@ -1,3 +1,4 @@
+import { ArenaPlaceholderPage } from './pages/ArenaPlaceholderPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
@@ -8,10 +9,14 @@ export function App() {
   const {
     screen,
     selectedRole,
+    progression,
+    roleProgress,
     completeOnboarding,
     selectRole,
     changeRole,
     openTraining,
+    openArena,
+    completeTraining,
     openHome,
   } = useAppState()
 
@@ -23,7 +28,7 @@ export function App() {
     return <RoleSelectionPage onSelectRole={selectRole} />
   }
 
-  if (!selectedRole) {
+  if (!selectedRole || !roleProgress) {
     return <RoleSelectionPage onSelectRole={selectRole} />
   }
 
@@ -31,6 +36,24 @@ export function App() {
     return (
       <TrainingPage
         role={selectedRole}
+        roleProgress={roleProgress}
+        energy={progression.energy}
+        streak={progression.streak}
+        onBack={openHome}
+        onOpenArena={openArena}
+        onChangeRole={changeRole}
+        onComplete={(result, questions) => completeTraining(selectedRole.id, result, questions)}
+      />
+    )
+  }
+
+  if (screen === 'arena') {
+    return (
+      <ArenaPlaceholderPage
+        role={selectedRole}
+        roleProgress={roleProgress}
+        energy={progression.energy}
+        streak={progression.streak}
         onBack={openHome}
         onChangeRole={changeRole}
       />
@@ -40,8 +63,12 @@ export function App() {
   return (
     <RoleHomePage
       role={selectedRole}
+      roleProgress={roleProgress}
+      energy={progression.energy}
+      streak={progression.streak}
       onChangeRole={changeRole}
       onOpenTraining={openTraining}
+      onOpenArena={openArena}
     />
   )
 }

@@ -1,23 +1,44 @@
 import { AppHeader } from '../components/AppHeader'
 import { AnswerFeedback } from '../components/training/AnswerFeedback'
 import { QuestionRenderer } from '../components/training/QuestionRenderer'
-import { initialRoleStats } from '../config/displayDefaults'
 import type { Role } from '../config/roles'
+import type { TrainingAward, getRoleProgress } from '../services/progression'
 import { trainingPassScore } from '../services/trainingEngine'
 import { useTrainingSession } from '../state/useTrainingSession'
+import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 type TrainingPageProps = {
   role: Role
+  roleProgress: ReturnType<typeof getRoleProgress>
+  energy: number
+  streak: number
   onBack: () => void
+  onOpenArena: () => void
   onChangeRole: () => void
+  onComplete: (result: TrainingResult, questions: TrainingQuestion[]) => TrainingAward
 }
 
-export function TrainingPage({ role, onBack, onChangeRole }: TrainingPageProps) {
-  const training = useTrainingSession(role.id, initialRoleStats.level)
+export function TrainingPage({
+  role,
+  roleProgress,
+  energy,
+  streak,
+  onBack,
+  onOpenArena,
+  onChangeRole,
+  onComplete,
+}: TrainingPageProps) {
+  const training = useTrainingSession(role.id, roleProgress.level, onComplete)
 
   return (
     <div className="app-shell">
-      <AppHeader role={role} onChangeRole={onChangeRole} />
+      <AppHeader
+        role={role}
+        roleProgress={roleProgress}
+        energy={energy}
+        streak={streak}
+        onChangeRole={onChangeRole}
+      />
 
       {training.status === 'loading' && (
         <main className="training-message" aria-live="polite">
@@ -36,7 +57,7 @@ export function TrainingPage({ role, onBack, onChangeRole }: TrainingPageProps) 
           </h1>
           <p>
             {training.status === 'empty'
-              ? 'Тестовый Training сейчас доступен только для Product Manager.'
+              ? 'Для этой роли пока нет доступных заданий.'
               : 'Вернись на главную и попробуй запустить Training ещё раз.'}
           </p>
           <button className="primary-button" type="button" onClick={onBack}>
@@ -110,7 +131,7 @@ export function TrainingPage({ role, onBack, onChangeRole }: TrainingPageProps) 
         </main>
       )}
 
-      {training.status === 'result' && training.result && (
+      {training.status === 'result' && training.result && training.award && (
         <main className="training-result-page">
           <section className="result-summary" aria-labelledby="training-result-title">
             <span className="section-kicker">Training Result</span>
@@ -122,20 +143,28 @@ export function TrainingPage({ role, onBack, onChangeRole }: TrainingPageProps) 
               Правильных ответов: {training.result.correctCount} из{' '}
               {training.result.totalCount}.
             </p>
+            <p>Получено за Training: {training.award.xpEarned} XP.</p>
             <div className={training.result.passed ? 'result-status is-passed' : 'result-status'}>
-              {training.result.passed
-                ? `Результат не ниже ${trainingPassScore}% соответствует условию открытия Arena.`
-                : `Для условия открытия Arena нужно набрать минимум ${trainingPassScore}%.`}
+              {training.award.arenaUnlockedNow
+                ? 'Arena разблокирована для этой роли.'
+                : training.award.arenaUnlocked
+                  ? 'Arena уже разблокирована для этой роли.'
+                  : `Для открытия Arena нужно набрать минимум ${trainingPassScore}%.`}
             </div>
-            <p className="result-note">
-              На этом этапе результат не меняет XP, Energy, Streak или состояние Arena.
-            </p>
             <div className="result-actions">
               <button className="primary-button" type="button" onClick={training.restart}>
                 Пройти ещё раз
               </button>
+              <button
+                className={roleProgress.arenaUnlocked ? 'primary-button' : 'secondary-button'}
+                type="button"
+                disabled={!roleProgress.arenaUnlocked}
+                onClick={onOpenArena}
+              >
+                {roleProgress.arenaUnlocked ? 'Перейти в арену' : 'Арена заблокирована'}
+              </button>
               <button className="secondary-action-button" type="button" onClick={onBack}>
-                Вернуться на Role Home
+                На главную
               </button>
             </div>
           </section>
