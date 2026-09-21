@@ -2,86 +2,106 @@
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  color: #172033;
-  background: #f4f6fb;
+  color: #172036;
+  background: #f5f6f8;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button { font: inherit; }
+button:focus-visible { outline: 3px solid rgb(68 92 204 / 25%); outline-offset: 3px; }
+h1, h2, p { margin-top: 0; }
+
+.brand { display: inline-flex; align-items: center; gap: 10px; color: #172036; font-weight: 750; letter-spacing: -0.02em; }
+.brand-mark { display: grid; width: 32px; height: 32px; place-items: center; background: #445ccc; color: #fff; font-size: .95rem; }
+.brand-name { white-space: nowrap; }
+
+.primary-button, .secondary-button { min-height: 46px; padding: 11px 18px; border: 1px solid transparent; border-radius: 7px; font-weight: 700; cursor: pointer; }
+.primary-button { background: #445ccc; color: #fff; }
+.primary-button:hover { background: #354cb9; }
+.secondary-button { border-color: #d7dae2; background: #eceef2; color: #7b8291; }
+.secondary-button:disabled { cursor: not-allowed; }
+.text-button, .back-button { padding: 0; border: 0; background: transparent; color: #445ccc; font-weight: 650; cursor: pointer; }
+.text-button:hover, .back-button:hover { text-decoration: underline; }
+.section-kicker, .step-label { color: #445ccc; font-size: .78rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+
+.onboarding-page, .selection-page, .placeholder-page { min-height: 100vh; background: #fff; }
+.onboarding-page { display: grid; place-items: center; padding: 24px; }
+.onboarding-shell { display: flex; width: min(100%, 760px); min-height: 520px; flex-direction: column; padding: clamp(28px, 5vw, 52px); border: 1px solid #e0e3e9; background: #fff; }
+.onboarding-content { display: flex; max-width: 620px; flex: 1; flex-direction: column; justify-content: center; padding: 60px 0 48px; }
+.onboarding-content h1, .page-intro h1, .home-intro h1, .placeholder-content h1 { margin: 14px 0 18px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.08; letter-spacing: -.045em; }
+.onboarding-content p, .page-intro p, .home-intro p, .placeholder-content p { max-width: 610px; margin-bottom: 0; color: #626a7a; font-size: 1.05rem; line-height: 1.65; }
+.onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.step-dots { display: flex; gap: 8px; }
+.step-dot { width: 24px; height: 3px; background: #d9dce4; }
+.step-dot.is-active { background: #445ccc; }
+
+.page-container, .placeholder-shell { width: min(100%, 1120px); margin: 0 auto; padding: 36px 28px 72px; }
+.page-intro { max-width: 700px; padding: 100px 0 48px; }
+.role-list { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #dfe2e8; border-bottom: 1px solid #dfe2e8; }
+.role-option { display: flex; min-height: 280px; flex-direction: column; align-items: flex-start; padding: 28px; border: 0; border-right: 1px solid #dfe2e8; background: #fff; color: inherit; text-align: left; cursor: pointer; }
+.role-option:last-child { border-right: 0; }
+.role-option:hover { background: #f7f8fc; }
+.role-short-name { margin-bottom: 50px; color: #818899; font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.role-name { margin-bottom: 12px; font-size: 1.35rem; font-weight: 750; }
+.role-description { color: #626a7a; line-height: 1.55; }
+.role-action { margin-top: auto; padding-top: 32px; color: #445ccc; font-weight: 700; }
+
+.app-shell { min-height: 100vh; }
+.app-header { display: flex; min-height: 76px; align-items: center; justify-content: space-between; gap: 28px; padding: 14px max(28px, calc((100vw - 1064px) / 2)); border-bottom: 1px solid #dfe2e8; background: #fff; }
+.header-main, .player-stats, .level-stat, .role-control { display: flex; align-items: center; }
+.header-main { gap: 32px; }
+.role-control { gap: 12px; padding-left: 32px; border-left: 1px solid #dfe2e8; }
+.current-role { font-weight: 700; }
+.text-button { font-size: .82rem; }
+.player-stats { gap: 24px; color: #31394a; font-size: .9rem; font-weight: 700; }
+.level-stat { gap: 9px; }
+.xp-track { width: 92px; height: 5px; overflow: hidden; background: #dfe2e8; }
+.xp-fill { display: block; height: 100%; background: #445ccc; }
+.stat-detail { color: #737b8a; font-size: .78rem; font-weight: 600; }
+.stat-item { white-space: nowrap; }
+
+.home-content { width: min(100%, 1120px); margin: 0 auto; padding: 82px 28px; }
+.home-intro { max-width: 700px; margin-bottom: 54px; }
+.activity-list { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid #dfe2e8; border-bottom: 1px solid #dfe2e8; }
+.activity { display: flex; min-height: 320px; flex-direction: column; align-items: flex-start; padding: 32px; border-right: 1px solid #dfe2e8; background: #fff; }
+.activity:last-child { border-right: 0; }
+.activity-number { color: #8a91a0; font-size: .8rem; font-weight: 800; letter-spacing: .1em; }
+.activity h2 { margin: 32px 0 10px; font-size: 1.7rem; }
+.activity p { max-width: 400px; margin-bottom: 28px; color: #626a7a; line-height: 1.55; }
+.activity > .primary-button, .activity > .secondary-button { margin-top: auto; }
+.activity-locked { background: #f0f1f4; }
+.lock-message { display: flex; max-width: 410px; gap: 10px; margin-bottom: 24px; color: #555e6e; font-size: .9rem; line-height: 1.5; }
+
+.placeholder-shell { display: flex; min-height: 100vh; flex-direction: column; }
+.back-button { align-self: flex-start; margin-top: 56px; }
+.placeholder-content { max-width: 680px; margin: auto 0; padding: 80px 0; }
+
+@media (max-width: 860px) {
+  .app-header { align-items: flex-start; flex-direction: column; padding: 18px 24px; }
+  .player-stats { width: 100%; justify-content: space-between; }
+  .role-list, .activity-list { grid-template-columns: 1fr; }
+  .role-option, .activity { min-height: 0; border-right: 0; border-bottom: 1px solid #dfe2e8; }
+  .role-option:last-child, .activity:last-child { border-bottom: 0; }
+  .role-short-name { margin-bottom: 28px; }
+  .activity { min-height: 300px; }
 }
 
-body {
-  min-width: 320px;
-  min-height: 100vh;
-  margin: 0;
+@media (max-width: 560px) {
+  .onboarding-page { padding: 0; }
+  .onboarding-shell { min-height: 100vh; padding: 24px; border: 0; }
+  .onboarding-footer, .header-main, .role-control { align-items: flex-start; flex-direction: column; }
+  .onboarding-footer .primary-button { width: 100%; }
+  .page-container, .home-content, .placeholder-shell { padding-right: 20px; padding-left: 20px; }
+  .page-intro { padding-top: 72px; }
+  .header-main { gap: 16px; }
+  .role-control { gap: 6px; padding-left: 0; border-left: 0; }
+  .player-stats { flex-wrap: wrap; gap: 14px 20px; }
+  .level-stat { width: 100%; }
+  .xp-track { flex: 1; }
+  .home-content { padding-top: 56px; padding-bottom: 56px; }
+  .activity { padding: 24px; }
 }
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-.start-page {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  padding: 24px;
-}
-
-.start-card {
-  width: min(100%, 680px);
-  padding: clamp(32px, 7vw, 64px);
-  border: 1px solid #dfe4ef;
-  border-radius: 24px;
-  background: #ffffff;
-  box-shadow: 0 20px 50px rgb(23 32 51 / 8%);
-  text-align: center;
-}
-
-.eyebrow {
-  color: #6a4cff;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 14px 0 16px;
-  font-size: clamp(2.5rem, 8vw, 4.75rem);
-  line-height: 1;
-}
-
-p {
-  max-width: 520px;
-  margin: 0 auto;
-  color: #5b6475;
-  font-size: clamp(1rem, 2.5vw, 1.2rem);
-  line-height: 1.6;
-}
-
-.status {
-  display: inline-flex;
-  align-items: center;
-  margin-top: 30px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  color: #276749;
-  background: #e7f7ef;
-  font-size: 0.9rem;
-  font-weight: 650;
-}
-
-.status::before {
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
-  border-radius: 50%;
-  background: #38a169;
-  content: "";
-}
-
