@@ -1,9 +1,11 @@
 import { AppHeader } from '../components/AppHeader'
 import { NegotiationView } from '../components/arena/NegotiationView'
+import { ArenaResultView } from '../components/arena/ArenaResultView'
 import type { Role } from '../config/roles'
 import { localCharacterSource, localScenarioSource } from '../content/arenaSources'
 import { getCharacterPublicProfile, getDifficultyStars } from '../services/characterProfile'
 import { createBrowserOpponentService, getAIMode, type AIMode } from '../services/arenaOpponentGateway'
+import { createBrowserEvaluatorService } from '../services/evaluatorService'
 import { useEffect, useMemo, useState } from 'react'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
@@ -27,12 +29,15 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
   const [lastReplyMode, setLastReplyMode] = useState<AIMode | null>(null)
   const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
   const opponentService = useMemo(() => createBrowserOpponentService(setLastReplyMode, setFallbackNotice), [])
+  const evaluatorService = useMemo(() => createBrowserEvaluatorService(), [])
   useEffect(() => {
     let active = true
     getAIMode().then((mode) => { if (active) setConfiguredMode(mode) })
     return () => { active = false }
   }, [aiSettingsVersion])
-  const arena = useArenaFlow(role.id, localCharacterSource, localScenarioSource, opponentService, onComplete)
+  const arena = useArenaFlow(
+    role.id, localCharacterSource, localScenarioSource, opponentService, evaluatorService, onComplete,
+  )
   const characters = Array.from(new Map(
     arena.options?.map(({ character }) => [character.id, character]) ?? [],
   ).values())
@@ -148,19 +153,10 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
         )}
 
         {arena.step === 'result' && arena.selected && arena.session && (
-          <section className="arena-result" aria-labelledby="arena-result-title">
-            <span className="section-kicker">Arena · Тестовый результат</span>
-            <h1 id="arena-result-title">Переговоры завершены</h1>
-            <p>Сценарий: {arena.selected.scenario.title}</p>
-            <p>Оппонент: {arena.selected.character.name} · {arena.selected.character.role}</p>
-            <p>Ходов: {arena.session.currentTurn}</p>
-            <p className="arena-result-note">Подробная оценка переговоров появится на следующем этапе.</p>
-            <div className="result-actions">
-              <button className="primary-button" type="button" onClick={startNegotiation}>Попробовать ещё раз</button>
-              <button className="secondary-action-button" type="button" onClick={arena.backToSelection}>К выбору оппонента</button>
-              <button className="secondary-action-button" type="button" onClick={onBack}>На главную</button>
-            </div>
-          </section>
+          <ArenaResultView character={arena.selected.character} scenario={arena.selected.scenario}
+            session={arena.session} evaluation={arena.evaluation}
+            onRetryEvaluation={arena.retryEvaluation} onTryAgain={startNegotiation}
+            onBackToSelection={arena.backToSelection} onHome={onBack} />
         )}
       </main>
     </div>

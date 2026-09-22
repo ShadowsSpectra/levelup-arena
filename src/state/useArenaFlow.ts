@@ -3,16 +3,24 @@ import type { RoleId } from '../config/roles'
 import type { CharacterSource, ScenarioSource } from '../content/arenaSources'
 import { getArenaOptions, type ArenaOption } from '../services/arenaCatalog'
 import { addOpponentReply, addPlayerMessage, createArenaSession, endArenaSession } from '../services/arenaSession'
+import type { EvaluatorService } from '../services/evaluatorService'
 import type { OpponentService } from '../services/opponentService'
 import type { ArenaSession } from '../types/arena'
+import type { ArenaEvaluation } from '../types/arenaEvaluation'
 
 type ArenaStep = 'selection' | 'negotiation' | 'result'
+export type ArenaEvaluationState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; result: ArenaEvaluation }
+  | { status: 'error'; message: string }
 
 export function useArenaFlow(
   roleId: RoleId,
   characterSource: CharacterSource,
   scenarioSource: ScenarioSource,
   opponentService: OpponentService,
+  evaluatorService: EvaluatorService,
   onComplete: (session: ArenaSession) => void,
 ) {
   const [options, setOptions] = useState<ArenaOption[] | null>(null)
@@ -22,9 +30,11 @@ export function useArenaFlow(
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [session, setSession] = useState<ArenaSession | null>(null)
   const [replyError, setReplyError] = useState(false)
+  const [evaluation, setEvaluation] = useState<ArenaEvaluationState>({ status: 'idle' })
   const busy = useRef(false)
   const completionRecorded = useRef(false)
   const generation = useRef(0)
+  const evaluationGeneration = useRef(0)
 
   useEffect(() => {
     let active = true
@@ -34,7 +44,7 @@ export function useArenaFlow(
         if (import.meta.env.DEV) console.error('[Arena] Failed to load content.', error)
         if (active) setLoadError(true)
       })
-    return () => { active = false; generation.current += 1 }
+    return () => { active = false; generation.current += 1; evaluationGeneration.current += 1 }
   }, [roleId, characterSource, scenarioSource])
 
   const selected = options?.find(({ scenario, character }) =>
@@ -62,8 +72,33 @@ export function useArenaFlow(
       selected.scenario.id, selected.character.id, selected.scenario.openingMessage,
     ))
     setReplyError(false)
+    evaluationGeneration.current += 1
+    setEvaluation({ status: 'idle' })
     completionRecorded.current = false
     setStep('negotiation')
+  }
+
+  async function evaluate(completed: ArenaSession) {
+    if (!selected) return
+    const requestGeneration = ++evaluationGeneration.current
+    setEvaluation({ status: 'loading' })
+    try {
+      const result = await evaluatorService.evaluate({
+        character: selected.character,
+        scenario: selected.scenario,
+        session: completed,
+      })
+      if (requestGeneration === evaluationGeneration.current) {
+        setEvaluation({ status: 'success', result })
+      }
+    } catch (error) {
+      if (requestGeneration === evaluationGeneration.current) {
+        setEvaluation({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Не удалось получить оценку. Попробуйте ещё раз.',
+        })
+      }
+    }
   }
 
   async function send(text: string): Promise<boolean> {
@@ -101,6 +136,11 @@ export function useArenaFlow(
     onComplete(completed)
     setSession(completed)
     setStep('result')
+    void evaluate(completed)
+  }
+
+  function retryEvaluation() {
+    if (session?.status === 'completed') void evaluate(session)
   }
 
   function backToSelection() {
@@ -108,12 +148,14 @@ export function useArenaFlow(
     setSelectedCharacterId(null)
     setSelectedScenarioId(null)
     setSession(null)
+    evaluationGeneration.current += 1
+    setEvaluation({ status: 'idle' })
     setStep('selection')
   }
 
   return {
     options, loadError, step, selectedCharacterId, selectedScenarioId,
-    selected, session, replyError,
-    chooseCharacter, chooseScenario, start, send, finish, backToSelection,
+    selected, session, replyError, evaluation,
+    chooseCharacter, chooseScenario, start, send, finish, retryEvaluation, backToSelection,
   }
 }

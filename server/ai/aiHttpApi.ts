@@ -1,7 +1,10 @@
 import type { ArenaSession, Character, Scenario } from '../../src/types/arena'
 import { mockOpponentService } from '../../src/services/opponentService'
 import { createAIOpponentService } from './createAIOpponentService'
+import { createAIEvaluatorService } from './createAIEvaluatorService'
 import { createAISettingsStore, validateAISettings, type AISettings } from './aiSettings'
+import { EvaluationValidationError, parseArenaEvaluation } from './evaluatorResult'
+import { buildEvaluatorMessages } from './evaluatorPrompt'
 import { AIProviderError, createOpenAICompatibleProvider } from './openAICompatibleProvider'
 import { buildOpponentMessages } from './opponentPrompt'
 
@@ -83,6 +86,44 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
       } else if (path === '/api/ai/settings' && req.method === 'POST') {
         settings.save(await readJson(req))
         send(res, 200, settings.getPublic())
+      } else if (path === '/api/ai/evaluate' && req.method === 'POST') {
+        const context = await readJson(req) as ReplyContext
+        if (!context?.character?.name || !context?.scenario?.title ||
+          !Array.isArray(context?.session?.messages) || context.session.status !== 'completed' ||
+          context.session.characterId !== context.character.id ||
+          context.session.scenarioId !== context.scenario.id) {
+          throw new Error('Для оценки нужен корректный завершённый transcript.')
+        }
+        const configured = settings.get()
+        if (!configured) {
+          send(res, 409, { error: 'AI не настроен. Диалог сохранён — настройте AI и повторите оценку.' })
+          return
+        }
+        try {
+          const service = createAIEvaluatorService({
+            config: {
+              serverEndpoint: '/api/ai/evaluate',
+              models: { evaluator: {
+                provider: configured.provider, model: configured.model, apiEndpoint: configured.baseUrl,
+              } },
+            },
+            providers: {
+              'openai-compatible': createOpenAICompatibleProvider(() => configured.apiKey, options.fetcher),
+            },
+            createMessages: buildEvaluatorMessages,
+            parseResult: parseArenaEvaluation,
+          })
+          send(res, 200, { evaluation: await service.evaluate(context), mode: 'real' })
+        } catch (error) {
+          if (error instanceof EvaluationValidationError) {
+            send(res, 502, {
+              stage: 'evaluator-validation',
+              error: `Ответ Evaluator не прошёл проверку: ${error.message}`,
+            })
+            return
+          }
+          throw error
+        }
       } else if (path === '/api/ai/opponent' && req.method === 'POST') {
         const context = await readJson(req) as ReplyContext
         if (!context?.character?.name || !context?.scenario?.title ||
