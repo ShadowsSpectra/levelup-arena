@@ -10,6 +10,7 @@ type RoleHomePageProps = {
   onChangeRole: () => void
   onOpenTraining: () => void
   onOpenArena: () => void
+  onOpenAISettings: () => void
 }
 
 export function RoleHomePage({
@@ -20,6 +21,7 @@ export function RoleHomePage({
   onChangeRole,
   onOpenTraining,
   onOpenArena,
+  onOpenAISettings,
 }: RoleHomePageProps) {
   return (
     <div className="app-shell">
@@ -61,6 +63,7 @@ export function RoleHomePage({
             </button>
           </article>
         </section>
+        <button className="text-button ai-settings-entry" type="button" onClick={onOpenAISettings}>AI Settings</button>
       </main>
     </div>
   )

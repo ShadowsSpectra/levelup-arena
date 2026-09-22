@@ -6,12 +6,13 @@ type NegotiationViewProps = {
   scenario: Scenario
   session: ArenaSession
   replyError: boolean
+  fallbackNotice: string | null
   onSend: (text: string) => Promise<boolean>
   onFinish: () => void
 }
 
 export function NegotiationView({
-  character, scenario, session, replyError, onSend, onFinish,
+  character, scenario, session, replyError, fallbackNotice, onSend, onFinish,
 }: NegotiationViewProps) {
   const [draft, setDraft] = useState('')
   const atLimit = session.status === 'turn-limit'
@@ -48,10 +49,16 @@ export function NegotiationView({
             <p>{message.text}</p>
           </article>
         ))}
-        {responding && <p className="arena-reply-status">{character.name} отвечает…</p>}
+        {responding && (
+          <div className="arena-typing" role="status">
+            <span className="arena-typing-dot" aria-hidden="true" />
+            {character.name} печатает…
+          </div>
+        )}
       </div>
 
       {replyError && <p className="arena-error" role="alert">Не удалось получить ответ. Попробуйте отправить сообщение ещё раз.</p>}
+      {!responding && fallbackNotice && <p className="arena-fallback-notice" role="status">{fallbackNotice}</p>}
       {atLimit ? (
         <button className="primary-button arena-finish-button" type="button" onClick={onFinish}>
           Перейти к результату

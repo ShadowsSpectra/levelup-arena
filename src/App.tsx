@@ -6,6 +6,8 @@ import { TrainingPage } from './pages/TrainingPage'
 import { useAppState } from './state/useAppState'
 
 export function App() {
+  const [aiSettingsOpen, setAISettingsOpen] = useState(false)
+  const [aiSettingsVersion, setAISettingsVersion] = useState(0)
   const {
     screen,
     selectedRole,
@@ -50,6 +52,7 @@ export function App() {
 
   if (screen === 'arena') {
     return (
+      <>
       <ArenaPage
         role={selectedRole}
         roleProgress={roleProgress}
@@ -58,11 +61,17 @@ export function App() {
         onBack={openHome}
         onChangeRole={changeRole}
         onComplete={completeArena}
+        onOpenAISettings={() => setAISettingsOpen(true)}
+        aiSettingsVersion={aiSettingsVersion}
       />
+      {aiSettingsOpen && <AISettingsDialog onClose={() => setAISettingsOpen(false)}
+        onSaved={() => setAISettingsVersion((version) => version + 1)} />}
+      </>
     )
   }
 
   return (
+    <>
     <RoleHomePage
       role={selectedRole}
       roleProgress={roleProgress}
@@ -71,6 +80,12 @@ export function App() {
       onChangeRole={changeRole}
       onOpenTraining={openTraining}
       onOpenArena={openArena}
+      onOpenAISettings={() => setAISettingsOpen(true)}
     />
+    {aiSettingsOpen && <AISettingsDialog onClose={() => setAISettingsOpen(false)}
+      onSaved={() => setAISettingsVersion((version) => version + 1)} />}
+    </>
   )
 }
+import { useState } from 'react'
+import { AISettingsDialog } from './components/AISettingsDialog'

@@ -3,7 +3,8 @@ import { NegotiationView } from '../components/arena/NegotiationView'
 import type { Role } from '../config/roles'
 import { localCharacterSource, localScenarioSource } from '../content/arenaSources'
 import { getCharacterPublicProfile, getDifficultyStars } from '../services/characterProfile'
-import { mockOpponentService } from '../services/opponentService'
+import { createBrowserOpponentService, getAIMode, type AIMode } from '../services/arenaOpponentGateway'
+import { useEffect, useMemo, useState } from 'react'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
 import type { ArenaSession } from '../types/arena'
@@ -16,10 +17,22 @@ type ArenaPageProps = {
   onBack: () => void
   onChangeRole: () => void
   onComplete: (session: ArenaSession) => void
+  onOpenAISettings: () => void
+  aiSettingsVersion: number
 }
 
-export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete }: ArenaPageProps) {
-  const arena = useArenaFlow(role.id, localCharacterSource, localScenarioSource, mockOpponentService, onComplete)
+export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete,
+  onOpenAISettings, aiSettingsVersion }: ArenaPageProps) {
+  const [configuredMode, setConfiguredMode] = useState<AIMode>('mock')
+  const [lastReplyMode, setLastReplyMode] = useState<AIMode | null>(null)
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
+  const opponentService = useMemo(() => createBrowserOpponentService(setLastReplyMode, setFallbackNotice), [])
+  useEffect(() => {
+    let active = true
+    getAIMode().then((mode) => { if (active) setConfiguredMode(mode) })
+    return () => { active = false }
+  }, [aiSettingsVersion])
+  const arena = useArenaFlow(role.id, localCharacterSource, localScenarioSource, opponentService, onComplete)
   const characters = Array.from(new Map(
     arena.options?.map(({ character }) => [character.id, character]) ?? [],
   ).values())
@@ -27,11 +40,25 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
     ({ character }) => character.id === arena.selectedCharacterId,
   ) ?? []
 
+  function startNegotiation() {
+    setFallbackNotice(null)
+    setLastReplyMode(null)
+    arena.start()
+  }
+
   return (
     <div className="app-shell">
       <AppHeader role={role} roleProgress={roleProgress} energy={energy} streak={streak}
         onChangeRole={onChangeRole} />
       <main className="arena-page">
+        <div className="arena-ai-toolbar">
+          <span className="arena-ai-mode" role="status">
+            {arena.session?.status === 'responding'
+              ? 'Ожидаем ответ оппонента…'
+              : `${lastReplyMode ? 'Ответы' : 'Режим'}: ${(lastReplyMode ?? configuredMode) === 'real' ? 'Real AI' : 'Mock'}`}
+          </span>
+          <button className="text-button" type="button" onClick={onOpenAISettings}>AI Settings</button>
+        </div>
         {arena.step === 'selection' && (
           <>
             <button className="back-button" type="button" onClick={onBack}>← На главную</button>
@@ -103,7 +130,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                         <ul>{arena.selected.scenario.playerBrief.knownInformation.map((fact) => <li key={fact}>{fact}</li>)}</ul>
                       </div>
                     )}
-                    <button className="primary-button arena-start-button" type="button" disabled={!arena.selected} onClick={arena.start}>
+                    <button className="primary-button arena-start-button" type="button" disabled={!arena.selected} onClick={startNegotiation}>
                       Начать переговоры
                     </button>
                   </section>
@@ -116,7 +143,8 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
 
         {arena.step === 'negotiation' && arena.selected && arena.session && (
           <NegotiationView character={arena.selected.character} scenario={arena.selected.scenario}
-            session={arena.session} replyError={arena.replyError} onSend={arena.send} onFinish={arena.finish} />
+            session={arena.session} replyError={arena.replyError} fallbackNotice={fallbackNotice}
+            onSend={arena.send} onFinish={arena.finish} />
         )}
 
         {arena.step === 'result' && arena.selected && arena.session && (
@@ -128,7 +156,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
             <p>Ходов: {arena.session.currentTurn}</p>
             <p className="arena-result-note">Подробная оценка переговоров появится на следующем этапе.</p>
             <div className="result-actions">
-              <button className="primary-button" type="button" onClick={arena.start}>Попробовать ещё раз</button>
+              <button className="primary-button" type="button" onClick={startNegotiation}>Попробовать ещё раз</button>
               <button className="secondary-action-button" type="button" onClick={arena.backToSelection}>К выбору оппонента</button>
               <button className="secondary-action-button" type="button" onClick={onBack}>На главную</button>
             </div>
