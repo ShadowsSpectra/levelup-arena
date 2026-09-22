@@ -2,6 +2,7 @@ import type { RoleId } from '../config/roles'
 
 export type Character = {
   id: string
+  unlockRequirements?: { minLevel?: number; previousBossId?: string }
   name: string
   role: string
   avatar?: string
@@ -55,6 +56,7 @@ export type ArenaMessage = {
 }
 
 export type ArenaSession = {
+  id: string
   scenarioId: string
   characterId: string
   messages: ArenaMessage[]

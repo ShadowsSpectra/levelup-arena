@@ -9,3 +9,7 @@ export const energyRules = {
   trainingCost: 1,
   allowTrainingAtZero: true,
 } as const
+
+export const arenaRewards = {
+  successXp: 50,
+} as const

@@ -2,6 +2,7 @@ import type { ArenaSession } from '../types/arena'
 
 export function createArenaSession(scenarioId: string, characterId: string, openingMessage: string): ArenaSession {
   return {
+    id: crypto.randomUUID(),
     scenarioId,
     characterId,
     messages: [{ id: 'opponent-opening', speaker: 'opponent', text: openingMessage }],

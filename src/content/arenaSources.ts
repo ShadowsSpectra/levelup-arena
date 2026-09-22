@@ -59,6 +59,11 @@ function isCharacter(value: unknown): value is Character {
       (key) => isText(value[key]),
     ) &&
     (value.avatar === undefined || typeof value.avatar === 'string') &&
+    (value.unlockRequirements === undefined || (
+      isRecord(value.unlockRequirements) &&
+      (value.unlockRequirements.minLevel === undefined || isPositiveInteger(value.unlockRequirements.minLevel)) &&
+      (value.unlockRequirements.previousBossId === undefined || isText(value.unlockRequirements.previousBossId))
+    )) &&
     isPositiveInteger(value.difficulty) &&
     ['low', 'medium', 'high'].includes(String(value.cooperativeness)) &&
     ['low', 'medium', 'high'].includes(String(value.pressure)) &&

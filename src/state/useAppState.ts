@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { getRoleById, type RoleId } from '../config/roles'
-import { applyArenaCompletion, applyTrainingCompletion, getRoleProgress } from '../services/progression'
+import { applyArenaCompletion, applyArenaEvaluation, applyTrainingCompletion, getRoleProgress } from '../services/progression'
 import { appStorage } from '../services/storage'
 import type { ArenaSession } from '../types/arena'
+import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 type Screen = 'onboarding' | 'role-selection' | 'home' | 'training' | 'arena'
@@ -59,6 +60,15 @@ export function useAppState() {
     setProgression(updated)
   }
 
+  function completeArenaEvaluation(roleId: RoleId, session: ArenaSession, result: ArenaEvaluation) {
+    const { progression: updated, award } = applyArenaEvaluation(
+      appStorage.getProgression(), roleId, session, result,
+    )
+    appStorage.setProgression(updated)
+    setProgression(updated)
+    return award
+  }
+
   function completeTraining(
     roleId: RoleId,
     result: TrainingResult,
@@ -91,6 +101,7 @@ export function useAppState() {
     openArena,
     completeTraining,
     completeArena,
+    completeArenaEvaluation,
     openHome,
   }
 }

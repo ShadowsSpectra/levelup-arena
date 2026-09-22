@@ -1,10 +1,23 @@
-import { energyRules, levelThresholds } from '../config/progression'
+import { arenaRewards, energyRules, levelThresholds } from '../config/progression'
 import { roles, type RoleId } from '../config/roles'
-import type { ArenaSession } from '../types/arena'
+import type { ArenaSession, Character } from '../types/arena'
+import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 export type RoleProgress = {
   xp: number
+  bosses: Record<string, BossProgress>
+}
+
+export type BossProgress = {
+  attempts: number
+  defeated: boolean
+  bestScore: number | null
+}
+
+export type ArenaAward = {
+  xpEarned: number
+  bossDefeated: boolean
 }
 
 export type ProgressionState = {
@@ -12,6 +25,7 @@ export type ProgressionState = {
   energy: number
   streak: number
   lastActivityDate: string | null
+  arenaAwards: Record<string, { roleId: RoleId; characterId: string; award: ArenaAward }>
 }
 
 export type TrainingAward = {
@@ -21,11 +35,12 @@ export type TrainingAward = {
 export function createInitialProgression(): ProgressionState {
   return {
     roles: Object.fromEntries(
-      roles.map(({ id }) => [id, { xp: 0 }]),
+      roles.map(({ id }) => [id, { xp: 0, bosses: {} }]),
     ) as Record<RoleId, RoleProgress>,
     energy: energyRules.maximum,
     streak: 0,
     lastActivityDate: null,
+    arenaAwards: {},
   }
 }
 
@@ -94,6 +109,64 @@ export function applyArenaCompletion(
   return registerCompletedActivity(state, completedAt)
 }
 
+export function isBossUnlocked(character: Character, roleProgress: RoleProgress, level: number) {
+  const requirements = character.unlockRequirements
+  return (!requirements?.minLevel || level >= requirements.minLevel) &&
+    (!requirements?.previousBossId || roleProgress.bosses[requirements.previousBossId]?.defeated === true)
+}
+
+export function applyArenaEvaluation(
+  state: ProgressionState,
+  roleId: RoleId,
+  session: ArenaSession,
+  evaluation: ArenaEvaluation,
+): { progression: ProgressionState; award: ArenaAward } {
+  if (session.status !== 'completed' || !session.id) {
+    throw new Error('Only an identified completed Arena session can be rewarded.')
+  }
+  const existing = state.arenaAwards[session.id]
+  if (existing) {
+    if (existing.roleId !== roleId || existing.characterId !== session.characterId) {
+      throw new Error('Arena session has already been recorded for another role or boss.')
+    }
+    return { progression: state, award: existing.award }
+  }
+  const role = state.roles[roleId]
+  const previousBoss = role.bosses[session.characterId] ?? {
+    attempts: 0, defeated: false, bestScore: null,
+  }
+  const bossDefeated = evaluation.outcome.status === 'SUCCESS'
+  const award: ArenaAward = {
+    xpEarned: bossDefeated ? arenaRewards.successXp : 0,
+    bossDefeated,
+  }
+  return {
+    award,
+    progression: {
+      ...state,
+      roles: {
+        ...state.roles,
+        [roleId]: {
+          ...role,
+          xp: role.xp + award.xpEarned,
+          bosses: {
+            ...role.bosses,
+            [session.characterId]: {
+              attempts: previousBoss.attempts + 1,
+              defeated: previousBoss.defeated || bossDefeated,
+              bestScore: Math.max(previousBoss.bestScore ?? 0, evaluation.overallScore),
+            },
+          },
+        },
+      },
+      arenaAwards: {
+        ...state.arenaAwards,
+        [session.id]: { roleId, characterId: session.characterId, award },
+      },
+    },
+  }
+}
+
 export function applyTrainingCompletion(
   state: ProgressionState,
   roleId: RoleId,
@@ -125,6 +198,7 @@ export function applyTrainingCompletion(
     roles: {
       ...state.roles,
       [roleId]: {
+        ...state.roles[roleId],
         xp: state.roles[roleId].xp + xpEarned,
       },
     },

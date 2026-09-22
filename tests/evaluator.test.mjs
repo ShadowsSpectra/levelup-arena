@@ -197,7 +197,8 @@ test('user-facing prose normalizes role labels while Main Insight remains ground
   assert.equal(validated.mainInsight.evidence, session.messages[1].text)
   assert.ok(!validated.mainInsight.insight.includes(session.messages[1].text))
   const html = renderToStaticMarkup(React.createElement(ArenaResultView, {
-    character, scenario, session, evaluation: { status: 'success', result: validated },
+    character, scenario, session, evaluation: { status: 'success', result: validated,
+      award: { xpEarned: 50, bossDefeated: true } },
     onRetryEvaluation() {}, onTryAgain() {}, onBackToSelection() {}, onHome() {},
   }))
   assert.doesNotMatch(html, /\b(?:PLAYER|OPPONENT|assistant|user|system)\b/i)
@@ -260,11 +261,21 @@ test('Result never renders hidden card data and exposes an explicit recoverable 
   const baseProps = { character, scenario, session, onRetryEvaluation() {}, onTryAgain() {},
     onBackToSelection() {}, onHome() {} }
   const success = renderToStaticMarkup(React.createElement(ArenaResultView, {
-    ...baseProps, evaluation: { status: 'success', result: parseArenaEvaluation(JSON.stringify(resultFor()), context) },
+    ...baseProps, evaluation: { status: 'success', result: parseArenaEvaluation(JSON.stringify(resultFor()), context),
+      award: { xpEarned: 50, bossDefeated: true } },
   }))
   assert.ok(success.includes('Разбор навыков'))
+  assert.ok(success.includes('Получено XP: 50'))
+  assert.ok(success.includes('Оппонент побеждён'))
   assert.ok(!success.includes(character.privateInformation[0]))
   assert.ok(!success.includes(scenario.hiddenData.opponentGoal))
+
+  const noAgreement = renderToStaticMarkup(React.createElement(ArenaResultView, {
+    ...baseProps, evaluation: { status: 'success', result: parseArenaEvaluation(JSON.stringify(resultFor()), context),
+      award: { xpEarned: 0, bossDefeated: false } },
+  }))
+  assert.ok(noAgreement.includes('Получено XP: 0'))
+  assert.ok(noAgreement.includes('Оппонент пока не побеждён'))
 
   const failure = renderToStaticMarkup(React.createElement(ArenaResultView, {
     ...baseProps, evaluation: { status: 'error', message: 'Ответ Evaluator не прошёл проверку.' },

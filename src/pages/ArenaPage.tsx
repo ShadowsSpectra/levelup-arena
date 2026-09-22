@@ -10,6 +10,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
 import type { ArenaSession } from '../types/arena'
+import type { ArenaEvaluation } from '../types/arenaEvaluation'
+import { isBossUnlocked, type ArenaAward } from '../services/progression'
 
 type ArenaPageProps = {
   role: Role
@@ -19,11 +21,12 @@ type ArenaPageProps = {
   onBack: () => void
   onChangeRole: () => void
   onComplete: (session: ArenaSession) => void
+  onEvaluated: (session: ArenaSession, result: ArenaEvaluation) => ArenaAward
   onOpenAISettings: () => void
   aiSettingsVersion: number
 }
 
-export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete,
+export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
   onOpenAISettings, aiSettingsVersion }: ArenaPageProps) {
   const [configuredMode, setConfiguredMode] = useState<AIMode>('mock')
   const [lastReplyMode, setLastReplyMode] = useState<AIMode | null>(null)
@@ -36,11 +39,13 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
     return () => { active = false }
   }, [aiSettingsVersion])
   const arena = useArenaFlow(
-    role.id, localCharacterSource, localScenarioSource, opponentService, evaluatorService, onComplete,
+    role.id, localCharacterSource, localScenarioSource, opponentService, evaluatorService, onComplete, onEvaluated,
+    (character) => isBossUnlocked(character, roleProgress, roleProgress.level),
   )
   const characters = Array.from(new Map(
     arena.options?.map(({ character }) => [character.id, character]) ?? [],
   ).values())
+  const availableCount = characters.filter((character) => isBossUnlocked(character, roleProgress, roleProgress.level)).length
   const characterScenarios = arena.options?.filter(
     ({ character }) => character.id === arena.selectedCharacterId,
   ) ?? []
@@ -72,7 +77,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
               <h1>Выберите оппонента</h1>
               <div className="arena-setup-stats">
                 <span>Уровень {roleProgress.level}</span>
-                <span>Доступно оппонентов: {characters.length}</span>
+                <span>Доступно оппонентов: {availableCount}</span>
               </div>
             </header>
             {arena.loadError ? (
@@ -92,11 +97,13 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                   {characters.map((character) => (
                     <button className={`arena-choice-card${arena.selectedCharacterId === character.id ? ' is-selected' : ''}`}
                       type="button" key={character.id} aria-pressed={arena.selectedCharacterId === character.id}
+                      disabled={!isBossUnlocked(character, roleProgress, roleProgress.level)}
                       onClick={() => arena.chooseCharacter(character.id)}>
                       <span className="arena-card-title">{character.name}</span>
                       <span className="arena-card-subtitle">{character.role}</span>
                       <span>Сложность: {getDifficultyStars(character.difficulty)}</span>
                       <span>{getCharacterPublicProfile(character)}</span>
+                      {!isBossUnlocked(character, roleProgress, roleProgress.level) && <span>Пока закрыт</span>}
                     </button>
                   ))}
                   <div className="arena-preview-card" aria-disabled="true">

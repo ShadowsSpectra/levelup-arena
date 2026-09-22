@@ -39,6 +39,33 @@ function normalizeProgression(value: unknown): ProgressionState {
     if (!isRecord(storedRole)) continue
     restoredRoles[roleId] = {
       xp: nonNegativeInteger(storedRole.xp, 0),
+      bosses: {},
+    }
+    const storedBosses = isRecord(storedRole.bosses) ? storedRole.bosses : {}
+    for (const [bossId, boss] of Object.entries(storedBosses)) {
+      if (!bossId || !isRecord(boss)) continue
+      const score = boss.bestScore
+      restoredRoles[roleId].bosses[bossId] = {
+        attempts: nonNegativeInteger(boss.attempts, 0),
+        defeated: boss.defeated === true,
+        bestScore: score === null || (typeof score === 'number' && Number.isInteger(score) && score >= 0 && score <= 100)
+          ? score : null,
+      }
+    }
+  }
+
+  const arenaAwards: ProgressionState['arenaAwards'] = {}
+  const storedAwards = isRecord(value.arenaAwards) ? value.arenaAwards : {}
+  for (const [sessionId, entry] of Object.entries(storedAwards)) {
+    if (!sessionId || !isRecord(entry)) continue
+    const roleId = typeof entry.roleId === 'string' ? entry.roleId : null
+    if (!isRoleId(roleId) ||
+        typeof entry.characterId !== 'string' || !entry.characterId || !isRecord(entry.award)) continue
+    const xpEarned = nonNegativeInteger(entry.award.xpEarned, -1)
+    if (xpEarned < 0 || typeof entry.award.bossDefeated !== 'boolean') continue
+    arenaAwards[sessionId] = {
+      roleId, characterId: entry.characterId,
+      award: { xpEarned, bossDefeated: entry.award.bossDefeated },
     }
   }
 
@@ -54,6 +81,7 @@ function normalizeProgression(value: unknown): ProgressionState {
       : validLocalDate(value.lastTrainingDate)
         ? value.lastTrainingDate
         : null,
+    arenaAwards,
   }
 }
 

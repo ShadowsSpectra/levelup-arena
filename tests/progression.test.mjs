@@ -15,9 +15,11 @@ after(async () => {
 
 const {
   applyArenaCompletion,
+  applyArenaEvaluation,
   applyTrainingCompletion,
   createInitialProgression,
   getRoleProgress,
+  isBossUnlocked,
 } = await server.ssrLoadModule('/src/services/progression.ts')
 const { createArenaSession, endArenaSession } = await server.ssrLoadModule('/src/services/arenaSession.ts')
 const {
@@ -30,6 +32,9 @@ const { RoleHomePage } = await server.ssrLoadModule('/src/pages/RoleHomePage.tsx
 const { roles } = await server.ssrLoadModule('/src/config/roles.ts')
 
 const roleIds = ['product_manager', 'project_manager', 'sales_manager']
+const evaluationFor = (status, overallScore = 72) => ({
+  outcome: { status, bossDefeated: status === 'SUCCESS' }, overallScore,
+})
 const questions = [10, 20, 30, 40, 50].map((xp, index) => ({
   id: `test_${index}`,
   role: 'product_manager',
@@ -212,6 +217,81 @@ test('completed Training and Arena share one local-day streak', () => {
   ).progression
   assert.equal(progression.streak, 1)
   assert.equal(progression.lastActivityDate, '2026-09-24')
+})
+
+test('Arena awards only SUCCESS once, tracks boss attempts and best score, and preserves Streak/Energy', () => {
+  const session = endArenaSession(createArenaSession('scenario', 'boss-one', 'Начало'))
+  const starting = applyArenaCompletion(createInitialProgression(), session, new Date(2026, 8, 21))
+  const first = applyArenaEvaluation(starting, 'product_manager', session, evaluationFor('NO_AGREEMENT', 80))
+  assert.equal(first.award.xpEarned, 0)
+  assert.deepEqual(first.progression.roles.product_manager.bosses['boss-one'], {
+    attempts: 1, defeated: false, bestScore: 80,
+  })
+  const duplicate = applyArenaEvaluation(first.progression, 'product_manager', session, evaluationFor('SUCCESS', 99))
+  assert.equal(duplicate.progression, first.progression)
+  assert.deepEqual(duplicate.award, first.award)
+
+  const successSession = endArenaSession(createArenaSession('scenario', 'boss-one', 'Начало'))
+  assert.notEqual(successSession.id, session.id)
+  const success = applyArenaEvaluation(first.progression, 'product_manager', successSession, evaluationFor('SUCCESS', 65))
+  assert.equal(success.award.xpEarned, 50)
+  assert.equal(success.progression.roles.product_manager.xp, 50)
+  assert.deepEqual(success.progression.roles.product_manager.bosses['boss-one'], {
+    attempts: 2, defeated: true, bestScore: 80,
+  })
+  const retried = applyArenaEvaluation(success.progression, 'product_manager', successSession, evaluationFor('SUCCESS', 65))
+  assert.equal(retried.progression, success.progression)
+  assert.equal(retried.award.xpEarned, 50)
+  const badSession = endArenaSession(createArenaSession('scenario', 'boss-one', 'Начало'))
+  const bad = applyArenaEvaluation(retried.progression, 'product_manager', badSession, evaluationFor('BAD_AGREEMENT', 90))
+  assert.equal(bad.award.xpEarned, 0)
+  assert.deepEqual(bad.progression.roles.product_manager.bosses['boss-one'], {
+    attempts: 3, defeated: true, bestScore: 90,
+  })
+  assert.equal(bad.progression.energy, 6)
+  assert.equal(bad.progression.streak, 1)
+})
+
+test('Arena progression is role-specific and future boss requirements combine level and previous defeat', () => {
+  const session = endArenaSession(createArenaSession('scenario', 'first-boss', 'Начало'))
+  const earned = applyArenaEvaluation(createInitialProgression(), 'product_manager', session, evaluationFor('SUCCESS'))
+  assert.equal(earned.progression.roles.project_manager.xp, 0)
+  assert.deepEqual(earned.progression.roles.project_manager.bosses, {})
+  assert.throws(() => applyArenaEvaluation(earned.progression, 'project_manager', session, evaluationFor('SUCCESS')),
+    /another role or boss/)
+  const futureBoss = { id: 'next-boss', unlockRequirements: { minLevel: 2, previousBossId: 'first-boss' } }
+  assert.equal(isBossUnlocked(futureBoss, getRoleProgress(earned.progression, 'product_manager'), 1), false)
+  assert.equal(isBossUnlocked(futureBoss, getRoleProgress(earned.progression, 'project_manager'), 2), false)
+  const moreXp = applyTrainingCompletion(earned.progression, 'product_manager', resultWithCorrectAnswers(3), questions)
+  assert.equal(isBossUnlocked(futureBoss, getRoleProgress(moreXp.progression, 'product_manager'), 2), true)
+  assert.equal(isBossUnlocked({ id: 'first-boss' }, getRoleProgress(earned.progression, 'product_manager'), 1), true)
+  assert.equal(earned.progression.roles.product_manager.xp, 50)
+})
+
+test('failed evaluation does not record an Arena reward and persisted award blocks replay', () => {
+  const previousWindow = globalThis.window
+  const values = new Map()
+  globalThis.window = { localStorage: {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  } }
+  try {
+    const session = endArenaSession(createArenaSession('scenario', 'boss-one', 'Начало'))
+    const completed = applyArenaCompletion(createInitialProgression(), session)
+    assert.equal(completed.roles.product_manager.xp, 0)
+    assert.deepEqual(completed.roles.product_manager.bosses, {})
+    appStorage.setProgression(completed)
+    const first = applyArenaEvaluation(appStorage.getProgression(), 'product_manager', session, evaluationFor('SUCCESS'))
+    appStorage.setProgression(first.progression)
+    const restored = appStorage.getProgression()
+    const repeat = applyArenaEvaluation(restored, 'product_manager', session, evaluationFor('SUCCESS'))
+    assert.equal(repeat.progression, restored)
+    assert.equal(repeat.award.xpEarned, 50)
+    assert.equal(restored.roles.product_manager.xp, 50)
+    assert.equal(restored.roles.product_manager.bosses['boss-one'].attempts, 1)
+  } finally {
+    globalThis.window = previousWindow
+  }
 })
 
 test('Energy bottoms out at zero without blocking further Training', () => {

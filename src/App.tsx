@@ -20,6 +20,7 @@ export function App() {
     openArena,
     completeTraining,
     completeArena,
+    completeArenaEvaluation,
     openHome,
   } = useAppState()
 
@@ -61,6 +62,7 @@ export function App() {
         onBack={openHome}
         onChangeRole={changeRole}
         onComplete={completeArena}
+        onEvaluated={(session, result) => completeArenaEvaluation(selectedRole.id, session, result)}
         onOpenAISettings={() => setAISettingsOpen(true)}
         aiSettingsVersion={aiSettingsVersion}
       />

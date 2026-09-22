@@ -62,7 +62,10 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
           <section className={`arena-outcome arena-outcome-${evaluation.result.outcome.status.toLowerCase()}`}>
             <span className="section-kicker">Исход переговоров</span>
             <h2>{outcomeLabels[evaluation.result.outcome.status]}</h2>
-            {evaluation.result.outcome.bossDefeated && <p>Оппонент пройден: условия обеих сторон соблюдены.</p>}
+            <p>{evaluation.award.bossDefeated
+              ? 'Оппонент побеждён: условия обеих сторон соблюдены.'
+              : 'Оппонент пока не побеждён.'}</p>
+            <p>Получено XP: {evaluation.award.xpEarned}</p>
           </section>
 
           <section className="arena-score-summary">
