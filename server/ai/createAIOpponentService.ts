@@ -4,8 +4,7 @@ import { resolveAIModel, type AIConfig, type AIProviderRegistry } from './aiConf
 
 type ReplyContext = Parameters<OpponentService['reply']>[0]
 
-// The roleplay instructions belong to the Opponent layer, not AIProvider.
-// A future stage will supply createMessages when the actual prompt is designed.
+// Roleplay instructions belong to the Opponent layer, not AIProvider.
 export function createAIOpponentService(options: {
   config: AIConfig
   providers: AIProviderRegistry

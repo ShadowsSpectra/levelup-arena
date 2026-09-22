@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ArenaSession, Character, Scenario } from '../../types/arena'
 
 type NegotiationViewProps = {
@@ -11,12 +11,26 @@ type NegotiationViewProps = {
   onFinish: () => void
 }
 
+export function scrollTranscriptToLatest(
+  container: Pick<HTMLElement, 'scrollHeight' | 'scrollTo'>,
+) {
+  container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+}
+
 export function NegotiationView({
   character, scenario, session, replyError, fallbackNotice, onSend, onFinish,
 }: NegotiationViewProps) {
   const [draft, setDraft] = useState('')
+  const transcriptRef = useRef<HTMLDivElement>(null)
   const atLimit = session.status === 'turn-limit'
   const responding = session.status === 'responding'
+
+  useEffect(() => {
+    const container = transcriptRef.current
+    if (!container) return
+    const frame = window.requestAnimationFrame(() => scrollTranscriptToLatest(container))
+    return () => window.cancelAnimationFrame(frame)
+  }, [session.messages.length, responding])
 
   async function sendDraft() {
     if (await onSend(draft)) setDraft('')
@@ -42,7 +56,7 @@ export function NegotiationView({
         )}
       </div>
 
-      <div className="arena-transcript" aria-live="polite" aria-label="История переговоров">
+      <div className="arena-transcript" ref={transcriptRef} aria-live="polite" aria-label="История переговоров">
         {session.messages.map((message) => (
           <article className={`arena-message arena-message-${message.speaker}`} key={message.id}>
             <span>{message.speaker === 'player' ? 'Вы' : `${character.name} · ${character.role}`}</span>

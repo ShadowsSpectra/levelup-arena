@@ -12,7 +12,9 @@ const { createOpenAICompatibleProvider } = await vite.ssrLoadModule('/server/ai/
 const { validateAISettings, createAISettingsStore } = await vite.ssrLoadModule('/server/ai/aiSettings.ts')
 const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
 const { createBrowserOpponentService } = await vite.ssrLoadModule('/src/services/arenaOpponentGateway.ts')
-const { NegotiationView } = await vite.ssrLoadModule('/src/components/arena/NegotiationView.tsx')
+const { NegotiationView, scrollTranscriptToLatest } =
+  await vite.ssrLoadModule('/src/components/arena/NegotiationView.tsx')
+const { buildOpponentMessages, OPPONENT_RULES } = await vite.ssrLoadModule('/server/ai/opponentPrompt.ts')
 const React = await import('react')
 
 const credentials = {
@@ -21,6 +23,60 @@ const credentials = {
   apiKey: 'test-secret-not-real',
   model: 'test-model',
 }
+
+const promptCharacter = {
+  id: 'character_generic', name: 'Мария', role: 'Operations Lead', difficulty: 2,
+  personality: ['calm', 'careful'], communicationStyle: 'direct', cooperativeness: 'medium', pressure: 'high',
+  goal: 'Защитить качество поставки', position: 'Исходный план слишком рискованный',
+  interests: ['снизить риск'], constraints: ['ограниченная команда'],
+  privateInformation: ['скрытый резерв доступен в четверг'], redLines: ['не принимать критический риск'],
+  possibleConcessions: ['поэтапная поставка'], batna: 'Перенести запуск', behavior: ['задаёт точные вопросы'],
+}
+
+const promptScenario = {
+  id: 'scenario_generic', title: 'Сложный запуск', playerRole: 'project_manager', category: 'Сроки',
+  recommendedLevel: 1, maxTurns: 8, openingMessage: 'Обсудим план.', characterId: 'character_generic',
+  playerBrief: { situation: 'Запуск назначен на пятницу.', playerGoal: 'Сохранить дату.',
+    knownInformation: ['план содержит риски'] },
+  hiddenData: { opponentGoal: 'Не допустить сбоя', discoverableFacts: [
+    { id: 'reserve', fact: 'часть резерва можно подключить позже' },
+  ] },
+  successConditions: { playerMinimumConditions: ['сохранить результат'],
+    opponentMinimumConditions: ['снизить риск'], agreementRequirements: ['зафиксировать план'] },
+  validAgreementPaths: ['поэтапный запуск'], badAgreementExamples: ['игнорировать риск'],
+}
+
+test('opponent prompt contains selected cards, global rules and the complete transcript', () => {
+  const session = { scenarioId: promptScenario.id, characterId: promptCharacter.id, currentTurn: 1,
+    status: 'responding', messages: [
+      { id: 'opening', speaker: 'opponent', text: 'Начальная позиция' },
+      { id: 'player-1', speaker: 'player', text: 'Предлагаю снизить риск' },
+    ] }
+  const messages = buildOpponentMessages({ character: promptCharacter, scenario: promptScenario, session })
+  assert.equal(messages[0].role, 'system')
+  for (const value of [
+    promptCharacter.name, promptCharacter.role, promptCharacter.personality[0], promptCharacter.communicationStyle,
+    promptCharacter.goal, promptCharacter.position, promptCharacter.interests[0], promptCharacter.constraints[0],
+    promptCharacter.privateInformation[0], promptCharacter.redLines[0], promptCharacter.possibleConcessions[0],
+    promptCharacter.batna, promptCharacter.behavior[0], promptScenario.title, promptScenario.playerRole,
+    promptScenario.playerBrief.situation, promptScenario.playerBrief.playerGoal,
+    promptScenario.playerBrief.knownInformation[0], promptScenario.hiddenData.opponentGoal,
+    promptScenario.hiddenData.discoverableFacts[0].fact, promptScenario.successConditions.playerMinimumConditions[0],
+    promptScenario.successConditions.opponentMinimumConditions[0],
+    promptScenario.successConditions.agreementRequirements[0], promptScenario.validAgreementPaths[0],
+    promptScenario.badAgreementExamples[0], String(promptScenario.maxTurns),
+  ]) assert.ok(messages[0].content.includes(value), `missing prompt value: ${value}`)
+  for (const rule of ['Оставайся персонажем', 'Скрытые факты раскрывай по одному',
+    'Значимая уступка должна быть заслужена', 'Не решай кейс за игрока']) {
+    assert.ok(OPPONENT_RULES.includes(rule))
+    assert.ok(messages[0].content.includes(rule))
+  }
+  assert.deepEqual(messages.slice(1), [
+    { role: 'assistant', content: 'Начальная позиция' },
+    { role: 'user', content: 'Предлагаю снизить риск' },
+  ])
+  assert.ok(!messages[0].content.includes('Алексей'))
+})
 
 test('settings validation keeps keys out of public URLs and allows local HTTP only', () => {
   assert.equal(validateAISettings(credentials).baseUrl, 'https://provider.example/v1')
@@ -156,8 +212,8 @@ test('HTTP route checks without saving, then uses real AI and falls back to Mock
     assert.ok(!JSON.stringify(publicSettings).includes(credentials.apiKey))
 
     const context = {
-      character: { name: 'Тестовый оппонент', role: 'Lead' },
-      scenario: { title: 'Тестовый сценарий' },
+      character: promptCharacter,
+      scenario: promptScenario,
       session: { currentTurn: 1, messages: [
         { speaker: 'opponent', text: 'Начало' }, { speaker: 'player', text: 'Предложение' },
       ] },
@@ -271,7 +327,7 @@ test('a slow real response stays pending and does not become Mock before complet
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
     })
     assert.equal(saved.status, 200)
-    const context = { character: { name: 'Мария', role: 'Lead' }, scenario: { title: 'Тест' },
+    const context = { character: promptCharacter, scenario: promptScenario,
       session: { currentTurn: 1, messages: [{ speaker: 'player', text: 'Вопрос' }] } }
     let settled = false
     const pending = fetch(`${base}/api/ai/opponent`, {
@@ -301,7 +357,7 @@ test('a genuine provider timeout returns a labelled Mock fallback', async () => 
     })
     const response = await fetch(`${base}/api/ai/opponent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ character: { name: 'Мария', role: 'Lead' }, scenario: { title: 'Тест' },
+      body: JSON.stringify({ character: promptCharacter, scenario: promptScenario,
         session: { currentTurn: 1, messages: [{ speaker: 'player', text: 'Вопрос' }] } }),
     })
     const result = await response.json()
@@ -316,7 +372,7 @@ test('a genuine provider timeout returns a labelled Mock fallback', async () => 
 
 test('typing state uses the selected character and is not recorded as a message', () => {
   const markup = renderToStaticMarkup(React.createElement(NegotiationView, {
-    character: { name: 'Мария', role: 'Lead' }, scenario: { title: 'Тест' },
+    character: promptCharacter, scenario: promptScenario,
     session: { status: 'responding', messages: [{ id: '1', speaker: 'player', text: 'Вопрос' }] },
     replyError: false, fallbackNotice: null, onSend: async () => true, onFinish: () => {},
   }))
@@ -325,6 +381,16 @@ test('typing state uses the selected character and is not recorded as a message'
   assert.equal((markup.match(/<article/g) ?? []).length, 1)
   assert.match(markup, /<textarea[^>]*disabled/)
   assert.match(markup, /<button[^>]*disabled/)
+  assert.ok(!markup.includes(promptCharacter.privateInformation[0]))
+  assert.ok(!markup.includes(promptScenario.hiddenData.discoverableFacts[0].fact))
+  assert.ok(!markup.includes('Правила роли оппонента'))
+})
+
+test('chat autoscroll targets only the transcript container', () => {
+  const calls = []
+  const transcript = { scrollHeight: 742, scrollTo: (options) => calls.push(options) }
+  scrollTranscriptToLatest(transcript)
+  assert.deepEqual(calls, [{ top: 742, behavior: 'smooth' }])
 })
 
 test('local check endpoint identifies provider-stage errors without returning credentials', async () => {

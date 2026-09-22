@@ -3,6 +3,7 @@ import { mockOpponentService } from '../../src/services/opponentService'
 import { createAIOpponentService } from './createAIOpponentService'
 import { createAISettingsStore, validateAISettings, type AISettings } from './aiSettings'
 import { AIProviderError, createOpenAICompatibleProvider } from './openAICompatibleProvider'
+import { buildOpponentMessages } from './opponentPrompt'
 
 type ReplyContext = { character: Character; scenario: Scenario; session: ArenaSession }
 type Next = (error?: unknown) => void
@@ -28,19 +29,6 @@ async function readJson(req: RequestLike): Promise<unknown> {
     if (body.length > 128_000) throw new Error('Запрос слишком большой.')
   }
   try { return JSON.parse(body) } catch { throw new Error('Некорректные данные запроса.') }
-}
-
-function createMessages({ character, scenario, session }: ReplyContext) {
-  return [
-    {
-      role: 'system' as const,
-      content: `Ты — ${character.name}, ${character.role}, участник переговоров в ситуации «${scenario.title}». Отвечай кратко и естественно по-русски от лица оппонента. Не оценивай пользователя.`,
-    },
-    ...session.messages.map((message) => ({
-      role: message.speaker === 'player' ? 'user' as const : 'assistant' as const,
-      content: message.text,
-    })),
-  ]
 }
 
 export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
@@ -114,7 +102,7 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
               providers: {
                 'openai-compatible': createOpenAICompatibleProvider(() => configured.apiKey, options.fetcher),
               },
-              createMessages,
+              createMessages: buildOpponentMessages,
             })
             send(res, 200, { reply: await service.reply(context), mode: 'real' })
             return
