@@ -1,4 +1,4 @@
-import { ArenaPlaceholderPage } from './pages/ArenaPlaceholderPage'
+import { ArenaPage } from './pages/ArenaPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
@@ -49,7 +49,7 @@ export function App() {
 
   if (screen === 'arena') {
     return (
-      <ArenaPlaceholderPage
+      <ArenaPage
         role={selectedRole}
         roleProgress={roleProgress}
         energy={progression.energy}

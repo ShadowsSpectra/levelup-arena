@@ -347,6 +347,57 @@ h1, h2, p { margin-top: 0; }
   background: #f3f4f7;
 }
 
+.arena-page { width: min(100%, 960px); margin: 0 auto; padding: 40px 28px 80px; }
+.arena-page > .back-button { margin: 0 0 48px; }
+.arena-page-heading { max-width: 720px; margin-bottom: 36px; }
+.arena-page-heading h1, .arena-dialogue h1, .arena-result h1 {
+  margin: 12px 0 14px; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.04em; line-height: 1.15;
+}
+.arena-result p { color: #626a7a; line-height: 1.6; }
+.arena-setup-stats { display: flex; flex-wrap: wrap; gap: 10px 24px; color: #465063; font-weight: 700; }
+.arena-boss-list { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.arena-choice-card, .arena-preview-card { display: flex; min-height: 180px; flex-direction: column; align-items: flex-start; gap: 10px; padding: 24px; border: 1px solid #dfe2e8; border-radius: 7px; background: #fff; color: #31394a; text-align: left; line-height: 1.5; }
+.arena-choice-card { cursor: pointer; }
+.arena-choice-card:hover, .arena-choice-card:focus-visible { border-color: #8c98d5; background: #f7f8fc; }
+.arena-choice-card.is-selected { border-color: #445ccc; box-shadow: inset 0 0 0 1px #445ccc; background: #f1f3fc; }
+.arena-card-title { color: #172036; font-size: 1.35rem; font-weight: 750; }
+.arena-card-subtitle { color: #626a7a; font-weight: 700; }
+.arena-preview-card { border-style: dashed; background: #f0f1f4; color: #7b8291; cursor: not-allowed; }
+.arena-preview-card strong { font-size: 1.15rem; }
+.arena-preview-card small { margin-top: auto; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; }
+.arena-empty-state { max-width: 650px; padding: 32px; border: 1px solid #dfe2e8; background: #fff; }
+.arena-empty-state h2 { margin-bottom: 10px; }
+.arena-empty-state p { color: #626a7a; line-height: 1.6; }
+.arena-scenario-setup { margin-top: 52px; padding-top: 30px; border-top: 1px solid #dfe2e8; }
+.arena-scenario-setup h2 { font-size: 1.7rem; }
+.arena-scenario-list { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.arena-scenario-card, .arena-scenario-list .arena-preview-card { min-height: 130px; }
+.arena-selected-brief { max-width: 760px; margin-top: 30px; padding: 24px; border-left: 3px solid #445ccc; background: #fff; line-height: 1.65; }
+.arena-selected-brief h3 { margin: 0 0 10px; }
+.arena-selected-brief h3:not(:first-child) { margin-top: 20px; }
+.arena-selected-brief p { margin-bottom: 12px; }
+.arena-selected-brief ul { margin: 0; padding-left: 20px; }
+.arena-start-button { margin-top: 24px; }
+.arena-community-preview { margin-top: 36px; color: #7b8291; font-size: .85rem; }
+.arena-dialogue-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.arena-dialogue-heading p { color: #626a7a; }
+.arena-transcript { display: flex; min-height: 260px; max-height: 48vh; flex-direction: column; gap: 16px; overflow-y: auto; margin-top: 28px; padding: 20px; border: 1px solid #dfe2e8; background: #fff; }
+.arena-reply-status { color: #737b8a; }
+.arena-message { max-width: 82%; padding: 14px 18px; border-left: 3px solid #8c98d5; background: #f1f3fc; }
+.arena-message-player { align-self: flex-end; border-left-color: #445ccc; }
+.arena-message-opponent { align-self: flex-start; background: #f4f5f7; border-left-color: #8992a1; }
+.arena-message span { display: block; margin-bottom: 7px; color: #626a7a; font-size: .8rem; font-weight: 750; }
+.arena-message p { margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.arena-composer { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 22px; }
+.arena-composer label { font-weight: 700; }
+.arena-composer textarea { width: 100%; min-height: 100px; padding: 14px; border: 1px solid #cbd0da; border-radius: 7px; background: #fff; color: inherit; font: inherit; resize: vertical; }
+.arena-composer textarea:focus-visible { outline: 3px solid rgb(68 92 204 / 25%); outline-offset: 2px; }
+.arena-composer .primary-button { align-self: flex-end; }
+.arena-error { color: #a43d3d; }
+.arena-finish-button { margin-top: 22px; }
+.arena-result { max-width: 700px; padding-top: 72px; }
+.arena-result-note { margin-top: 32px; padding: 18px; border-left: 3px solid #445ccc; background: #eef1fb; }
+
 @media (max-width: 860px) {
   .app-header { align-items: flex-start; flex-direction: column; padding: 18px 24px; }
   .player-stats { width: 100%; justify-content: space-between; }
@@ -376,4 +427,8 @@ h1, h2, p { margin-top: 0; }
   .answer-option { grid-template-columns: 30px 1fr; padding: 14px; }
   .result-actions { flex-direction: column; }
   .result-actions button { width: 100%; }
+  .arena-page { padding-right: 20px; padding-left: 20px; }
+  .arena-dialogue-heading { flex-direction: column; }
+  .arena-message { max-width: 100%; }
+  .arena-composer .primary-button { align-self: stretch; }
 }
