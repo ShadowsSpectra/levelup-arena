@@ -12,6 +12,7 @@ after(async () => { await vite.close() })
 const { parseArenaEvaluation } = await vite.ssrLoadModule('/server/ai/evaluatorResult.ts')
 const { buildEvaluatorMessages, EVALUATOR_RULES } = await vite.ssrLoadModule('/server/ai/evaluatorPrompt.ts')
 const { createAIEvaluatorService } = await vite.ssrLoadModule('/server/ai/createAIEvaluatorService.ts')
+const { getEvaluatorTranscript } = await vite.ssrLoadModule('/server/ai/evaluatorTranscript.ts')
 const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
 const { ArenaResultView } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
 
@@ -58,15 +59,13 @@ function resultFor(type = 'SUCCESS') {
     facts,
     scores: Object.fromEntries(criterionIds.map((id, index) => [id, {
       score: 50 + index * 5,
-      evidence: index % 2
-        ? 'Предлагаю согласовать MVP к пятнице'
-        : 'Какие риски для команды сейчас самые важные?',
+      evidenceMessageId: index % 2 ? 'P2' : 'P1',
       reason: `Краткая причина ${index + 1}`,
     }])),
     strengths: ['Уточнил интересы до предложения'],
     improvements: ['Явно подтвердить принятие плана обеими сторонами'],
     mainInsight: {
-      evidence: 'Какие риски для команды сейчас самые важные?',
+      evidenceMessageId: 'P1',
       insight: 'Вы выяснили риски команды перед предложением MVP; в следующих переговорах повторяйте эту последовательность: сначала уточните риск, затем предложите обмен.',
     },
   }
@@ -93,7 +92,7 @@ test('application derives all three outcomes and bossDefeated from semantic fact
   assert.equal(parseArenaEvaluation(JSON.stringify(noAgreement), context).outcome.status, 'NO_AGREEMENT')
 })
 
-test('validator requires five scored criteria and exact player evidence; application derives overallScore', () => {
+test('validator requires five scored criteria and real player evidence IDs; application derives overallScore', () => {
   const valid = parseArenaEvaluation(JSON.stringify(resultFor()), context)
   assert.deepEqual(Object.keys(valid.scores), criterionIds)
   assert.equal(valid.overallScore, 60)
@@ -103,8 +102,8 @@ test('validator requires five scored criteria and exact player evidence; applica
   assert.throws(() => parseArenaEvaluation(JSON.stringify(missing), context), /exactly five/)
 
   const badEvidence = resultFor()
-  badEvidence.scores.initiative.evidence = 'Нас беспокоит качество.'
-  assert.throws(() => parseArenaEvaluation(JSON.stringify(badEvidence), context), /exact fragment from a player message/)
+  badEvidence.scores.initiative.evidenceMessageId = 'O1'
+  assert.throws(() => parseArenaEvaluation(JSON.stringify(badEvidence), context), /real player message ID/)
 
   const contradictory = resultFor()
   contradictory.outcome = { status: 'NO_AGREEMENT', bossDefeated: true }
@@ -135,6 +134,23 @@ test('criterion scores use the full 0–100 scale and small-scale responses are 
   assert.equal(parseArenaEvaluation(JSON.stringify(fullScale), context).overallScore, 50)
 })
 
+test('player evidence IDs are stable by transcript order and resolve to untouched original messages', () => {
+  const transcript = getEvaluatorTranscript(session)
+  assert.deepEqual(transcript.map(({ speaker, evidenceMessageId }) => [speaker, evidenceMessageId]), [
+    ['OPPONENT', undefined], ['PLAYER', 'P1'], ['OPPONENT', undefined], ['PLAYER', 'P2'],
+  ])
+  assert.deepEqual(getEvaluatorTranscript(structuredClone(session)), transcript)
+  const result = parseArenaEvaluation(JSON.stringify(resultFor()), context)
+  assert.equal(result.scores.interestsDiscovery.evidence, session.messages[1].text)
+  assert.equal(result.scores.objectionHandling.evidence, session.messages[3].text)
+  assert.equal(result.mainInsight.evidence, session.messages[1].text)
+  for (const invalidId of ['P0', 'P3', 'O1', 'player-1', 'p1']) {
+    const invalid = resultFor()
+    invalid.scores.initiative.evidenceMessageId = invalidId
+    assert.throws(() => parseArenaEvaluation(JSON.stringify(invalid), context), /real player message ID/)
+  }
+})
+
 test('user-facing prose normalizes role labels while Main Insight remains grounded and actionable', () => {
   const labelled = resultFor()
   labelled.scores.communicationAdaptability.reason = 'PLAYER сделал шаг к соглашению.'
@@ -148,18 +164,18 @@ test('user-facing prose normalizes role labels while Main Insight remains ground
   assert.equal(normalized.strengths[0], 'оппонент ответил на вопрос; Вы предложили обмен.')
   assert.equal(normalized.improvements[0], 'Ваш вопрос стоило уточнить.')
   assert.match(normalized.mainInsight.insight, /^Вы спросили/)
-  assert.equal(normalized.scores.communicationAdaptability.evidence, labelled.scores.communicationAdaptability.evidence)
+  assert.equal(normalized.scores.communicationAdaptability.evidence, session.messages[1].text)
 
   const literalRoleQuoteContext = structuredClone(context)
-  literalRoleQuoteContext.session.messages[1].text = 'PLAYER сделал предложение.'
+  literalRoleQuoteContext.session.messages[1].text = 'ПLAYER сделал предложение.'
   const literalRoleQuote = resultFor()
-  for (const id of [criterionIds[0], criterionIds[2], criterionIds[4]]) {
-    literalRoleQuote.scores[id].evidence = 'PLAYER сделал предложение.'
-  }
-  literalRoleQuote.mainInsight.evidence = 'PLAYER сделал предложение.'
+  literalRoleQuote.scores.communicationAdaptability.reason = 'Игрок сделал шаг к соглашению.'
+  literalRoleQuote.scores.initiative.reason = 'ПLAYER проигнорировал ограничение.'
   const exact = parseArenaEvaluation(JSON.stringify(literalRoleQuote), literalRoleQuoteContext)
-  assert.equal(exact.scores.communicationAdaptability.evidence, 'PLAYER сделал предложение.')
-  assert.equal(exact.mainInsight.evidence, 'PLAYER сделал предложение.')
+  assert.equal(exact.scores.communicationAdaptability.evidence, 'ПLAYER сделал предложение.')
+  assert.equal(exact.mainInsight.evidence, 'ПLAYER сделал предложение.')
+  assert.equal(exact.scores.communicationAdaptability.reason, 'Вы сделали шаг к соглашению.')
+  assert.equal(exact.scores.initiative.reason, 'Вы проигнорировали ограничение.')
 
   const generic = resultFor()
   generic.mainInsight.insight = 'Активное выяснение интересов и ограничений оппонента помогает найти взаимовыгодное решение.'
@@ -170,8 +186,8 @@ test('user-facing prose normalizes role labels while Main Insight remains ground
     ['Первое', 'Второе', 'Третье'])
 
   const opponentEvidence = resultFor()
-  opponentEvidence.mainInsight.evidence = 'Нас беспокоит качество.'
-  assert.throws(() => parseArenaEvaluation(JSON.stringify(opponentEvidence), context), /mainInsight.evidence must be an exact fragment/)
+  opponentEvidence.mainInsight.evidenceMessageId = 'O1'
+  assert.throws(() => parseArenaEvaluation(JSON.stringify(opponentEvidence), context), /mainInsight.evidenceMessageId must reference a real player message ID/)
 
   const malformed = resultFor()
   malformed.mainInsight = 'Старый текстовый формат'
@@ -188,7 +204,7 @@ test('user-facing prose normalizes role labels while Main Insight remains ground
   assert.ok(html.includes('Главный вывод'))
   assert.ok(html.includes(validated.mainInsight.insight))
   assert.ok(html.includes(`«${validated.mainInsight.evidence}»`))
-  assert.ok(!html.includes('mainInsight.evidence'))
+  assert.ok(!html.includes('evidenceMessageId'))
 })
 
 test('malformed output and leaked hidden information are rejected', () => {
@@ -202,8 +218,9 @@ test('Evaluator prompt receives full cards and transcript while keeping evaluato
   const messages = buildEvaluatorMessages(context)
   assert.equal(messages[0].role, 'system')
   for (const rule of ['concreteMutualAgreement', 'validAgreementPaths', 'communicationAdaptability',
-    'точный фрагмент', 'Не раскрывай privateInformation',
+    'evidenceMessageId', 'Не раскрывай privateInformation',
     '0–100', '0–20', '21–40', '41–60', '61–80', '81–100',
+    'игнорировано', 'не оценивай как средний', 'Балл, ID и reason должны согласовываться',
     'mainInsight', 'Верни только JSON', 'Не добавляй HTML']) {
     assert.ok(EVALUATOR_RULES.includes(rule))
   }
@@ -213,6 +230,11 @@ test('Evaluator prompt receives full cards and transcript while keeping evaluato
     scenario.validAgreementPaths[0], session.messages[1].text, session.messages[3].text]) {
     assert.ok(messages[1].content.includes(value))
   }
+  const payload = JSON.parse(messages[1].content.slice(messages[1].content.indexOf('{')))
+  assert.equal(payload.transcript[1].evidenceMessageId, 'P1')
+  assert.equal(payload.transcript[3].evidenceMessageId, 'P2')
+  assert.ok(!('evidenceMessageId' in payload.transcript[0]))
+  assert.ok(!('evidence' in resultFor().scores.interestsDiscovery))
 })
 
 test('Evaluator selects its own model and requests structured JSON independently of Opponent', async () => {
@@ -259,7 +281,7 @@ test('failed real evaluation returns no fake result and can be retried with the 
     evaluationCalls += 1
     providerRequests.push(JSON.parse(options.body))
     const evaluation = resultFor()
-    if (evaluationCalls === 1) evaluation.mainInsight.evidence = 'Нас беспокоит качество.'
+    if (evaluationCalls === 1) evaluation.mainInsight.evidenceMessageId = 'O1'
     const content = JSON.stringify(evaluation)
     return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 })
   } })
@@ -289,6 +311,7 @@ test('failed real evaluation returns no fake result and can be retried with the 
     assert.equal(evaluationCalls, 2)
     assert.deepEqual(providerRequests[1].messages, providerRequests[0].messages)
     assert.ok(providerRequests[1].messages[1].content.includes(session.messages[3].text))
+    assert.ok(providerRequests[1].messages[1].content.includes('"evidenceMessageId":"P2"'))
     assert.ok(providerRequests[1].messages[1].content.includes(character.privateInformation[0]))
     assert.equal(context.session.status, 'completed')
     assert.deepEqual(context, snapshot)

@@ -7,6 +7,7 @@ import {
   type ArenaOutcome,
   type ArenaSemanticFacts,
 } from '../../src/types/arenaEvaluation'
+import { getPlayerEvidenceMessages } from './evaluatorTranscript'
 
 export class EvaluationValidationError extends Error {
   constructor(message: string) {
@@ -36,6 +37,7 @@ const playerVerbForms: Readonly<Record<string, string>> = {
   сделал: 'сделали', задал: 'задали', предложил: 'предложили', спросил: 'спросили',
   уточнил: 'уточнили', начал: 'начали', выяснил: 'выяснили', выясняет: 'выясняете',
   использовал: 'использовали', отметил: 'отметили', показал: 'показали',
+  проигнорировал: 'проигнорировали', учитывал: 'учитывали', адаптировался: 'адаптировались',
 }
 
 function normalizeEvaluatorProse(value: string): string {
@@ -44,16 +46,16 @@ function normalizeEvaluatorProse(value: string): string {
     response: 'ответ', answer: 'ответ', message: 'реплика', approach: 'подход',
   }
   const possessive = value.replace(
-    /\b(?:PLAYER|user)['’]s\s+(question|proposal|argument|response|answer|message|approach)\b/gi,
+    /(?<![\p{L}\p{N}])(?:[PРП][LЛ][AА][YУ][EЕ][RР]|user)['’]s\s+(question|proposal|argument|response|answer|message|approach)\b/giu,
     (_match, noun: string) => `Ваш ${possessiveNouns[noun.toLowerCase()]}`,
   )
   const roles = possessive
-    .replace(/\b(?:PLAYER|user)['’]s\b/gi, 'ваш')
-    .replace(/\b(?:PLAYER|user)\b/gi, 'Вы')
+    .replace(/(?<![\p{L}\p{N}])(?:[PРП][LЛ][AА][YУ][EЕ][RР]|user)['’]s\b/giu, 'ваш')
+    .replace(/(?<![\p{L}\p{N}])(?:[PРП][LЛ][AА][YУ][EЕ][RР]|user|игрок)(?![\p{L}\p{N}])/giu, 'Вы')
     .replace(/\b(?:OPPONENT|assistant)\b/gi, 'оппонент')
     .replace(/\bsystem\b/gi, 'система')
   return roles.replace(
-    /((?:Вы|вы)(?:\s+\p{L}+){0,2}\s+)(сделал|задал|предложил|спросил|уточнил|начал|выяснил|выясняет|использовал|отметил|показал)(?!\p{L})/giu,
+    /((?:Вы|вы)(?:\s+\p{L}+){0,2}\s+)(сделал|задал|предложил|спросил|уточнил|начал|выяснил|выясняет|использовал|отметил|показал|проигнорировал|учитывал|адаптировался)(?!\p{L})/giu,
     (_match, prefix: string, verb: string) => `${prefix}${playerVerbForms[verb.toLowerCase()]}`,
   )
 }
@@ -70,31 +72,30 @@ function userFacingTextList(value: unknown, field: string): string[] {
   return value.slice(0, 3).map((item, index) => userFacingText(item, `${field}[${index}]`))
 }
 
-function playerEvidence(value: unknown, field: string, playerMessages: string[]): string {
-  const evidence = text(value, field, 300)
-  if (!playerMessages.some((message) => message.includes(evidence))) {
-    throw new EvaluationValidationError(`${field} must be an exact fragment from a player message.`)
+function playerEvidence(value: unknown, field: string, playerMessages: Map<string, string>): string {
+  if (typeof value !== 'string' || !/^P[1-9]\d*$/.test(value) || !playerMessages.has(value)) {
+    throw new EvaluationValidationError(`${field} must reference a real player message ID.`)
   }
-  return evidence
+  return playerMessages.get(value)!
 }
 
-function mainInsight(value: unknown, playerMessages: string[]): ArenaMainInsight {
-  if (!record(value) || !exactKeys(value, ['evidence', 'insight'])) {
+function mainInsight(value: unknown, playerMessages: Map<string, string>): ArenaMainInsight {
+  if (!record(value) || !exactKeys(value, ['evidenceMessageId', 'insight'])) {
     throw new EvaluationValidationError('Invalid mainInsight structure.')
   }
-  const evidence = playerEvidence(value.evidence, 'mainInsight.evidence', playerMessages)
+  const evidence = playerEvidence(value.evidenceMessageId, 'mainInsight.evidenceMessageId', playerMessages)
   const insight = userFacingText(value.insight, 'mainInsight.insight')
   return { evidence, insight }
 }
 
-function criterion(value: unknown, id: string, playerMessages: string[]): ArenaCriterionEvaluation {
-  if (!record(value) || !exactKeys(value, ['score', 'evidence', 'reason'])) {
+function criterion(value: unknown, id: string, playerMessages: Map<string, string>): ArenaCriterionEvaluation {
+  if (!record(value) || !exactKeys(value, ['score', 'evidenceMessageId', 'reason'])) {
     throw new EvaluationValidationError(`Invalid scores.${id}.`)
   }
   if (!Number.isInteger(value.score) || Number(value.score) < 0 || Number(value.score) > 100) {
     throw new EvaluationValidationError(`Invalid scores.${id}.score.`)
   }
-  const evidence = playerEvidence(value.evidence, `scores.${id}.evidence`, playerMessages)
+  const evidence = playerEvidence(value.evidenceMessageId, `scores.${id}.evidenceMessageId`, playerMessages)
   return { score: Number(value.score), evidence, reason: userFacingText(value.reason, `scores.${id}.reason`) }
 }
 
@@ -146,9 +147,7 @@ export function parseArenaEvaluation(
   }
   const scoreValues = value.scores
   const facts = semanticFacts(value.facts)
-  const playerMessages = context.session.messages
-    .filter(({ speaker }) => speaker === 'player')
-    .map(({ text: message }) => message)
+  const playerMessages = getPlayerEvidenceMessages(context.session)
   const scores = Object.fromEntries(arenaCriterionIds.map((id) => [
     id, criterion(scoreValues[id], id, playerMessages),
   ])) as ArenaEvaluation['scores']
