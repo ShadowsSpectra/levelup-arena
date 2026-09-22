@@ -39,7 +39,6 @@ function normalizeProgression(value: unknown): ProgressionState {
     if (!isRecord(storedRole)) continue
     restoredRoles[roleId] = {
       xp: nonNegativeInteger(storedRole.xp, 0),
-      arenaUnlocked: storedRole.arenaUnlocked === true,
     }
   }
 
@@ -50,9 +49,11 @@ function normalizeProgression(value: unknown): ProgressionState {
       nonNegativeInteger(value.energy, defaults.energy),
     ),
     streak: nonNegativeInteger(value.streak, defaults.streak),
-    lastTrainingDate: validLocalDate(value.lastTrainingDate)
-      ? value.lastTrainingDate
-      : null,
+    lastActivityDate: validLocalDate(value.lastActivityDate)
+      ? value.lastActivityDate
+      : validLocalDate(value.lastTrainingDate)
+        ? value.lastTrainingDate
+        : null,
   }
 }
 

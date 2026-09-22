@@ -34,7 +34,7 @@ export function RoleHomePage({
       <main className="home-content">
         <section className="home-intro">
           <span className="section-kicker">{role.focus}</span>
-          <h1>Готовы к следующей тренировке?</h1>
+          <h1>Готовы к переговорам?</h1>
           <p>{role.description}</p>
         </section>
 
@@ -42,35 +42,23 @@ export function RoleHomePage({
           <article className="activity activity-available">
             <div>
               <span className="activity-number">01</span>
+              <h2>Arena</h2>
+              <p>Применяйте переговорные навыки в диалоге с оппонентом.</p>
+            </div>
+            <button className="primary-button" type="button" onClick={onOpenArena}>
+              Открыть арену
+            </button>
+          </article>
+
+          <article className="activity activity-available">
+            <div>
+              <span className="activity-number">02</span>
               <h2>Training</h2>
-              <p>Короткая серия заданий с объяснением каждого ответа.</p>
+              <p>Тренировка отдельных навыков с объяснением ответов.</p>
             </div>
             <button className="primary-button" type="button" onClick={onOpenTraining}>
               Начать тренировку
             </button>
-          </article>
-
-          <article className={roleProgress.arenaUnlocked ? 'activity' : 'activity activity-locked'}>
-            <div>
-              <span className="activity-number">02</span>
-              <h2>Arena</h2>
-              <p>Применение навыков в переговорах с AI-соперником.</p>
-            </div>
-            {roleProgress.arenaUnlocked ? (
-              <button className="primary-button" type="button" onClick={onOpenArena}>
-                Открыть арену
-              </button>
-            ) : (
-              <>
-                <div className="lock-message">
-                  <span aria-hidden="true">🔒</span>
-                  <span>Набери минимум 80% на Training, чтобы открыть Arena.</span>
-                </div>
-                <button className="secondary-button" type="button" disabled>
-                  Арена заблокирована
-                </button>
-              </>
-            )}
           </article>
         </section>
       </main>

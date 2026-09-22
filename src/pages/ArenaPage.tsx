@@ -6,6 +6,7 @@ import { getCharacterPublicProfile, getDifficultyStars } from '../services/chara
 import { mockOpponentService } from '../services/opponentService'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
+import type { ArenaSession } from '../types/arena'
 
 type ArenaPageProps = {
   role: Role
@@ -14,10 +15,11 @@ type ArenaPageProps = {
   streak: number
   onBack: () => void
   onChangeRole: () => void
+  onComplete: (session: ArenaSession) => void
 }
 
-export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole }: ArenaPageProps) {
-  const arena = useArenaFlow(role.id, localCharacterSource, localScenarioSource, mockOpponentService)
+export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete }: ArenaPageProps) {
+  const arena = useArenaFlow(role.id, localCharacterSource, localScenarioSource, mockOpponentService, onComplete)
   const characters = Array.from(new Map(
     arena.options?.map(({ character }) => [character.id, character]) ?? [],
   ).values())

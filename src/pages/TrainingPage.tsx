@@ -3,7 +3,6 @@ import { AnswerFeedback } from '../components/training/AnswerFeedback'
 import { QuestionRenderer } from '../components/training/QuestionRenderer'
 import type { Role } from '../config/roles'
 import type { TrainingAward, getRoleProgress } from '../services/progression'
-import { trainingPassScore } from '../services/trainingEngine'
 import { useTrainingSession } from '../state/useTrainingSession'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
@@ -137,31 +136,19 @@ export function TrainingPage({
             <span className="section-kicker">Training Result</span>
             <div className="result-score">{training.result.score}%</div>
             <h1 id="training-result-title">
-              {training.result.passed ? 'Условие выполнено' : 'Продолжай тренировку'}
+              Тренировка завершена
             </h1>
             <p>
               Правильных ответов: {training.result.correctCount} из{' '}
               {training.result.totalCount}.
             </p>
             <p>Получено за Training: {training.award.xpEarned} XP.</p>
-            <div className={training.result.passed ? 'result-status is-passed' : 'result-status'}>
-              {training.award.arenaUnlockedNow
-                ? 'Arena разблокирована для этой роли.'
-                : training.award.arenaUnlocked
-                  ? 'Arena уже разблокирована для этой роли.'
-                  : `Для открытия Arena нужно набрать минимум ${trainingPassScore}%.`}
-            </div>
             <div className="result-actions">
               <button className="primary-button" type="button" onClick={training.restart}>
                 Пройти ещё раз
               </button>
-              <button
-                className={roleProgress.arenaUnlocked ? 'primary-button' : 'secondary-button'}
-                type="button"
-                disabled={!roleProgress.arenaUnlocked}
-                onClick={onOpenArena}
-              >
-                {roleProgress.arenaUnlocked ? 'Перейти в арену' : 'Арена заблокирована'}
+              <button className="primary-button" type="button" onClick={onOpenArena}>
+                Перейти в арену
               </button>
               <button className="secondary-action-button" type="button" onClick={onBack}>
                 На главную

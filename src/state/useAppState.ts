@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { getRoleById, type RoleId } from '../config/roles'
-import { applyTrainingCompletion, getRoleProgress } from '../services/progression'
+import { applyArenaCompletion, applyTrainingCompletion, getRoleProgress } from '../services/progression'
 import { appStorage } from '../services/storage'
+import type { ArenaSession } from '../types/arena'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 type Screen = 'onboarding' | 'role-selection' | 'home' | 'training' | 'arena'
@@ -47,9 +48,15 @@ export function useAppState() {
   }
 
   function openArena() {
-    if (appState.selectedRoleId && progression.roles[appState.selectedRoleId].arenaUnlocked) {
+    if (appState.selectedRoleId) {
       setAppState((current) => ({ ...current, screen: 'arena' }))
     }
+  }
+
+  function completeArena(session: ArenaSession) {
+    const updated = applyArenaCompletion(progression, session)
+    appStorage.setProgression(updated)
+    setProgression(updated)
   }
 
   function completeTraining(
@@ -83,6 +90,7 @@ export function useAppState() {
     openTraining,
     openArena,
     completeTraining,
+    completeArena,
     openHome,
   }
 }

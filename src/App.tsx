@@ -17,6 +17,7 @@ export function App() {
     openTraining,
     openArena,
     completeTraining,
+    completeArena,
     openHome,
   } = useAppState()
 
@@ -56,6 +57,7 @@ export function App() {
         streak={progression.streak}
         onBack={openHome}
         onChangeRole={changeRole}
+        onComplete={completeArena}
       />
     )
   }

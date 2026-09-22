@@ -13,6 +13,7 @@ export function useArenaFlow(
   characterSource: CharacterSource,
   scenarioSource: ScenarioSource,
   opponentService: OpponentService,
+  onComplete: (session: ArenaSession) => void,
 ) {
   const [options, setOptions] = useState<ArenaOption[] | null>(null)
   const [loadError, setLoadError] = useState(false)
@@ -22,6 +23,7 @@ export function useArenaFlow(
   const [session, setSession] = useState<ArenaSession | null>(null)
   const [replyError, setReplyError] = useState(false)
   const busy = useRef(false)
+  const completionRecorded = useRef(false)
   const generation = useRef(0)
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function useArenaFlow(
       selected.scenario.id, selected.character.id, selected.scenario.openingMessage,
     ))
     setReplyError(false)
+    completionRecorded.current = false
     setStep('negotiation')
   }
 
@@ -92,8 +95,11 @@ export function useArenaFlow(
   }
 
   function finish() {
-    if (!session || session.status === 'responding') return
-    setSession(endArenaSession(session))
+    if (!session || session.status === 'responding' || completionRecorded.current) return
+    completionRecorded.current = true
+    const completed = endArenaSession(session)
+    onComplete(completed)
+    setSession(completed)
     setStep('result')
   }
 
