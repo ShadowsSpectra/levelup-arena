@@ -399,6 +399,8 @@ h1, h2, p { margin-top: 0; }
 .arena-composer .primary-button { align-self: flex-end; }
 .arena-error { color: #a43d3d; }
 .arena-fallback-notice { margin-top: 14px; color: #785a2d; font-size: .9rem; }
+.arena-ending-suggestion { display: grid; gap: 12px; margin-top: 20px; padding: 18px; border-left: 3px solid #445ccc; background: #eef1fb; }
+.arena-ending-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .arena-finish-button { margin-top: 22px; }
 .arena-result { max-width: 780px; padding-top: 56px; }
 .arena-result-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: #626a7a; line-height: 1.5; }

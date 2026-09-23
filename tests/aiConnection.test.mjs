@@ -15,6 +15,8 @@ const { createBrowserOpponentService } = await vite.ssrLoadModule('/src/services
 const { NegotiationView, scrollTranscriptToLatest } =
   await vite.ssrLoadModule('/src/components/arena/NegotiationView.tsx')
 const { buildOpponentMessages, OPPONENT_RULES } = await vite.ssrLoadModule('/server/ai/opponentPrompt.ts')
+const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
+const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 const React = await import('react')
 
 const credentials = {
@@ -96,6 +98,32 @@ test('opponent role rules keep player instructions below Character and Scenario 
   assert.ok(messages[0].content.includes(promptScenario.successConditions.opponentMinimumConditions[0]))
   assert.deepEqual(messages.at(-1), { role: 'user', content: playerText })
   assert.ok(!messages[0].content.includes(playerText))
+})
+
+test('conditional agreement-closing rule reaches every Arena opponent without forcing acceptance', async () => {
+  const options = await getArenaOptions('product_manager', localCharacterSource, localScenarioSource)
+  assert.equal(options.length, 2)
+  const closureRules = [
+    'согласован конкретный взаимоприемлемый план',
+    'прямо подтверди согласие',
+    'коротко повтори договорённость',
+    'Не придумывай новые требования',
+    'подробностей постпереговорного исполнения',
+    'Если важное условие ещё не согласовано, не подтверждай соглашение',
+  ]
+  for (const rule of closureRules) assert.ok(OPPONENT_RULES.includes(rule))
+  assert.doesNotMatch(OPPONENT_RULES, /Алексей|Ирина/)
+  for (const { character, scenario } of options) {
+    const messages = buildOpponentMessages({ character, scenario, session: {
+      scenarioId: scenario.id, characterId: character.id, status: 'responding', currentTurn: 1,
+      messages: [{ id: 'player-1', speaker: 'player', text: 'Предлагаю конкретный план.' }],
+    } })
+    assert.equal(messages[0].role, 'system')
+    assert.ok(messages[0].content.includes(character.name))
+    assert.ok(messages[0].content.includes(scenario.successConditions.opponentMinimumConditions[0]))
+    for (const rule of closureRules) assert.ok(messages[0].content.includes(rule))
+    assert.equal(messages[1].role, 'user')
+  }
 })
 
 test('settings validation keeps keys out of public URLs and allows local HTTP only', () => {

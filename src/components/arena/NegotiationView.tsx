@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { getNaturalEndingSuggestion } from '../../services/naturalEnding'
 import type { ArenaSession, Character, Scenario } from '../../types/arena'
 
 type NegotiationViewProps = {
@@ -21,9 +22,11 @@ export function NegotiationView({
   character, scenario, session, replyError, fallbackNotice, onSend, onFinish,
 }: NegotiationViewProps) {
   const [draft, setDraft] = useState('')
+  const [dismissedEndingMessageId, setDismissedEndingMessageId] = useState<string | null>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const atLimit = session.status === 'turn-limit'
   const responding = session.status === 'responding'
+  const suggestedEndingMessageId = getNaturalEndingSuggestion(session, dismissedEndingMessageId)
 
   useEffect(() => {
     const container = transcriptRef.current
@@ -73,6 +76,18 @@ export function NegotiationView({
 
       {replyError && <p className="arena-error" role="alert">Не удалось получить ответ. Попробуйте отправить сообщение ещё раз.</p>}
       {!responding && fallbackNotice && <p className="arena-fallback-notice" role="status">{fallbackNotice}</p>}
+      {suggestedEndingMessageId && (
+        <div className="arena-ending-suggestion" role="status">
+          <strong>Похоже, переговоры завершены</strong>
+          <div className="arena-ending-actions">
+            <button className="primary-button" type="button" onClick={onFinish}>Перейти к результатам</button>
+            <button className="secondary-action-button" type="button"
+              onClick={() => setDismissedEndingMessageId(suggestedEndingMessageId)}>
+              Продолжить переговоры
+            </button>
+          </div>
+        </div>
+      )}
       {atLimit ? (
         <button className="primary-button arena-finish-button" type="button" onClick={onFinish}>
           Перейти к результату
