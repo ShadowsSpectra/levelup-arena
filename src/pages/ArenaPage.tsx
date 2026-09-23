@@ -94,18 +94,27 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                   </div>
                 )}
                 <div className="arena-boss-list" aria-label="Доступные оппоненты">
-                  {characters.map((character) => (
-                    <button className={`arena-choice-card${arena.selectedCharacterId === character.id ? ' is-selected' : ''}`}
-                      type="button" key={character.id} aria-pressed={arena.selectedCharacterId === character.id}
-                      disabled={!isBossUnlocked(character, roleProgress, roleProgress.level)}
-                      onClick={() => arena.chooseCharacter(character.id)}>
-                      <span className="arena-card-title">{character.name}</span>
-                      <span className="arena-card-subtitle">{character.role}</span>
-                      <span>Сложность: {getDifficultyStars(character.difficulty)}</span>
-                      <span>{getCharacterPublicProfile(character)}</span>
-                      {!isBossUnlocked(character, roleProgress, roleProgress.level) && <span>Пока закрыт</span>}
-                    </button>
-                  ))}
+                  {characters.map((character) => {
+                    const unlocked = isBossUnlocked(character, roleProgress, roleProgress.level)
+                    const previousBoss = characters.find(({ id }) => id === character.unlockRequirements?.previousBossId)
+                    return (
+                      <button className={`arena-choice-card${arena.selectedCharacterId === character.id ? ' is-selected' : ''}`}
+                        type="button" key={character.id} aria-pressed={arena.selectedCharacterId === character.id}
+                        disabled={!unlocked} onClick={() => arena.chooseCharacter(character.id)}>
+                        <span className="arena-card-title">{character.name}</span>
+                        <span className="arena-card-subtitle">{character.role}</span>
+                        <span>Сложность: {getDifficultyStars(character.difficulty)}</span>
+                        <span>{getCharacterPublicProfile(character)}</span>
+                        {roleProgress.bosses[character.id]?.defeated && <span>Пройден</span>}
+                        {!unlocked && <span>Пока закрыт
+                          {character.unlockRequirements?.minLevel && roleProgress.level < character.unlockRequirements.minLevel
+                            ? ` · нужен уровень ${character.unlockRequirements.minLevel}` : ''}
+                          {previousBoss && !roleProgress.bosses[previousBoss.id]?.defeated
+                            ? ` · победите ${previousBoss.name}` : ''}
+                        </span>}
+                      </button>
+                    )
+                  })}
                   <div className="arena-preview-card" aria-disabled="true">
                     <strong>+ Свой оппонент</strong>
                     <span>Возможность создать собственного AI-оппонента.</span>

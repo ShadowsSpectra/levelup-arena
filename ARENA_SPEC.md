@@ -873,6 +873,8 @@ Previous Boss defeated
 
 Требования открытия задаются в Character Card как необязательные `minLevel` и `previousBossId`; отсутствие требований означает доступность сразу. Текущий reference Boss не имеет требований. Закрытый Boss виден, но недоступен для запуска.
 
+В текущей цепочке Product Manager: Boss #1 — Алексей (`alexey_techlead_01`), доступен сразу; Boss #2 — Ирина, Head of Sales (`irina_sales_head_01`), difficulty 2, требует PM Level 2 и победы над Алексеем через общие `unlockRequirements`. После победы оба доступны для повторных попыток. Сценарий Ирины (`product_sales_commitment_02`) посвящён обещанной клиенту функции: нужно выяснить коммерческую потребность, проверить стоимость и ограничения Product/Engineering, затем совместно согласовать конкретную альтернативу, сохраняющую ценность сделки. Примеры `validAgreementPaths` не ограничивают другие допустимые решения. Полные Character и Scenario Cards хранятся в локальном content source; специальные правила для Ирины в Arena Engine не нужны.
+
 Пример:
 
 ```text

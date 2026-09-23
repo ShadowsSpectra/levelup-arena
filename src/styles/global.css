@@ -360,6 +360,8 @@ h1, h2, p { margin-top: 0; }
 .arena-choice-card { cursor: pointer; }
 .arena-choice-card:hover, .arena-choice-card:focus-visible { border-color: #8c98d5; background: #f7f8fc; }
 .arena-choice-card.is-selected { border-color: #445ccc; box-shadow: inset 0 0 0 1px #445ccc; background: #f1f3fc; }
+.arena-choice-card:disabled { cursor: not-allowed; color: #737b89; background: #f3f4f6; }
+.arena-choice-card:disabled:hover { border-color: #dfe2e8; background: #f3f4f6; }
 .arena-card-title { color: #172036; font-size: 1.35rem; font-weight: 750; }
 .arena-card-subtitle { color: #626a7a; font-weight: 700; }
 .arena-preview-card { border-style: dashed; background: #f0f1f4; color: #7b8291; cursor: not-allowed; }
