@@ -15,7 +15,7 @@ const { applyArenaEvaluation, createInitialProgression, getRoleProgress, isBossU
 const { buildOpponentMessages } = await server.ssrLoadModule('/server/ai/opponentPrompt.ts')
 const { buildEvaluatorMessages } = await server.ssrLoadModule('/server/ai/evaluatorPrompt.ts')
 
-test('local content provides two ordered Product bosses and empty states for other roles', async () => {
+test('local content provides separate Product and Project boss branches, with Sales still empty', async () => {
   const product = await getArenaOptions('product_manager', localCharacterSource, localScenarioSource)
   assert.equal(product.length, 2)
   assert.deepEqual(product.map(({ character }) => character.id), ['alexey_techlead_01', 'irina_sales_head_01'])
@@ -25,7 +25,8 @@ test('local content provides two ordered Product bosses and empty states for oth
   assert.ok(product[0].scenario.openingMessage)
   assert.equal(product[1].character.name, 'Ирина')
   assert.equal(product[1].scenario.characterId, product[1].character.id)
-  assert.equal((await getArenaOptions('project_manager', localCharacterSource, localScenarioSource)).length, 0)
+  const project = await getArenaOptions('project_manager', localCharacterSource, localScenarioSource)
+  assert.deepEqual(project.map(({ character }) => character.id), ['andrey_developer_01', 'marina_client_02'])
   assert.equal((await getArenaOptions('sales_manager', localCharacterSource, localScenarioSource)).length, 0)
 })
 

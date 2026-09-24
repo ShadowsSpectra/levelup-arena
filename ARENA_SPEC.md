@@ -879,6 +879,8 @@ Previous Boss defeated
 
 В текущей цепочке Product Manager: Boss #1 — Алексей (`alexey_techlead_01`), доступен сразу; Boss #2 — Ирина, Head of Sales (`irina_sales_head_01`), difficulty 2, требует PM Level 2 и победы над Алексеем через общие `unlockRequirements`. После победы оба доступны для повторных попыток. Сценарий Ирины (`product_sales_commitment_02`) посвящён обещанной клиенту функции: нужно выяснить коммерческую потребность, проверить стоимость и ограничения Product/Engineering, затем совместно согласовать конкретную альтернативу, сохраняющую ценность сделки. Примеры `validAgreementPaths` не ограничивают другие допустимые решения. Полные Character и Scenario Cards хранятся в локальном content source; специальные правила для Ирины в Arena Engine не нужны.
 
+В отдельной цепочке Project Manager: Boss #1 — Андрей, Developer (`andrey_developer_01`), доступен сразу; его сценарий (`project_external_dependency_01`) требует найти реалистичный план при блокирующей внешней зависимости. Boss #2 — Марина, Client (`marina_client_02`), difficulty 2, требует Project Manager Level 2 и победы над Андреем через те же `unlockRequirements`. Её сценарий (`project_scope_change_02`) проверяет переговоры о дополнительных требованиях клиента и обмене объёма, срока и ресурсов. Скрытые приоритеты и возможные уступки находятся только во внутренних данных карточек; `validAgreementPaths` остаются примерами, не исчерпывающим списком решений. Специальной логики Arena Engine для этой ветки нет.
+
 Пример:
 
 ```text

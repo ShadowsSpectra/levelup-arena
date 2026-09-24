@@ -51,6 +51,46 @@ test('explicit acceptance and restatement of a concrete plan suggests finishing'
   assert.match(view(session), /Похоже, переговоры завершены/)
 })
 
+test('accepted division of responsibilities suggests finishing without a repeated date', () => {
+  const session = exchange(
+    'Я попробую подключить второго разработчика к интеграции. Ты берёшь независимую часть и подготовку. Фиксируем?',
+    'Да, фиксируем. Я беру на себя независимую часть и подготовку к интеграции. Вы подключаете второго разработчика для завершения интеграции после готовности внешнего API.',
+  )
+  assert.equal(getNaturalEndingSuggestion(session), session.messages.at(-1).id)
+  assert.match(view(session), /Похоже, переговоры завершены/)
+})
+
+test('live Project plan confirmation suggests ending on both successive accepted restatements', () => {
+  const started = createArenaSession('scenario', 'character', 'Обсудим задачу.')
+  const first = addOpponentReply(addPlayerMessage(started,
+    'Тогда делаем независимую часть к текущему сроку, интеграцию после готовности API. Ты берёшь подготовку, я решаю вопрос с дополнительным разработчиком. Фиксируем?', 10),
+  'Звучит разумно. Давайте фиксируем: основной пользовательский сценарий выпускаем через 2 недели, интеграцию делаем после готовности API. Я беру на себя подготовку, а вы решаете вопрос с дополнительным разработчиком.', 10)
+  assert.equal(getNaturalEndingSuggestion(first), first.messages.at(-1).id)
+  assert.match(view(first), /Похоже, переговоры завершены/)
+
+  const second = addOpponentReply(addPlayerMessage(first, 'Хорошо', 10),
+    'Отлично, тогда у нас есть конкретный план. Основной пользовательский сценарий будет готов через 2 недели, интеграция — после готовности API. Я беру на себя подготовку, а вы решаете вопрос с дополнительным разработчиком.', 10)
+  assert.equal(getNaturalEndingSuggestion(second), second.messages.at(-1).id)
+  assert.match(view(second), /Похоже, переговоры завершены/)
+})
+
+test('a positive follow-up does not turn an unresolved or rejected plan into an ending', () => {
+  const started = createArenaSession('scenario', 'character', 'Обсудим задачу.')
+  const unaccepted = addOpponentReply(addPlayerMessage(started,
+    'Я беру подготовку к пятнице, вы подключаете коллегу. Фиксируем?', 10),
+  'Это возможно, но сначала нужно подтвердить доступность коллеги.', 10)
+  const stillOpen = addOpponentReply(addPlayerMessage(unaccepted, 'Хорошо', 10),
+    'Я беру подготовку к пятнице, вы подключаете коллегу после проверки доступности.', 10)
+  assert.equal(getNaturalEndingSuggestion(stillOpen), null)
+
+  const accepted = addOpponentReply(addPlayerMessage(started,
+    'Я беру подготовку к пятнице, вы подключаете коллегу. Фиксируем?', 10),
+  'Согласен. Я беру подготовку к пятнице, вы подключаете коллегу.', 10)
+  const rejected = addOpponentReply(addPlayerMessage(accepted, 'Хорошо', 10),
+    'Но теперь этот срок невозможен. Я не могу подтвердить подготовку к пятнице.', 10)
+  assert.equal(getNaturalEndingSuggestion(rejected), null)
+})
+
 test('a concrete plan in earlier turns supports a later two-sided confirmation', () => {
   const started = createArenaSession('scenario', 'character', 'Обсудим задачу.')
   const first = addOpponentReply(addPlayerMessage(started,
@@ -107,8 +147,16 @@ test('ordinary discovery, conditional agreement and ordinary objections do not t
     'Тогда фиксируем: через две недели выпускаем основной сценарий, аналитику переносим на второй этап.',
     'Согласен.',
   )
+  const bareYes = exchange(
+    'Я подключаю коллегу, вы готовите интеграцию. Фиксируем?',
+    'Да.',
+  )
+  const planningWithoutAcceptance = exchange(
+    'Я подключаю коллегу, вы готовите интеграцию. Фиксируем?',
+    'Я подготовлю интеграцию, вы подключите коллегу после оценки сроков.',
+  )
   for (const session of [ordinary, conditional, objection, agreementToDiscuss,
-    temporaryDeadlock, agreementToProblem, bareAcceptance]) {
+    temporaryDeadlock, agreementToProblem, bareAcceptance, bareYes, planningWithoutAcceptance]) {
     assert.equal(getNaturalEndingSuggestion(session), null)
     assert.doesNotMatch(view(session), /Похоже, переговоры завершены/)
   }
