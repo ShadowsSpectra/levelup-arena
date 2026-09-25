@@ -1,5 +1,6 @@
 import { AppHeader } from '../components/AppHeader'
 import type { Role } from '../config/roles'
+import { demoLeaderboard } from '../content/demoVision'
 import type { getRoleProgress } from '../services/progression'
 
 type RoleHomePageProps = {
@@ -23,6 +24,11 @@ export function RoleHomePage({
   onOpenArena,
   onOpenAISettings,
 }: RoleHomePageProps) {
+  const bestScore = Object.values(roleProgress.bosses).reduce<number | null>(
+    (best, boss) => boss.bestScore === null ? best : Math.max(best ?? 0, boss.bestScore),
+    null,
+  )
+
   return (
     <div className="app-shell">
       <AppHeader
@@ -62,6 +68,28 @@ export function RoleHomePage({
               Начать тренировку
             </button>
           </article>
+        </section>
+        <section className="home-leaderboard" aria-labelledby="home-leaderboard-title">
+          <div className="home-leaderboard-intro">
+            <div>
+              <span className="section-kicker">Демо</span>
+              <h2 id="home-leaderboard-title">Рейтинг переговорщиков</h2>
+            </div>
+          </div>
+          <ol className="home-leaderboard-list">
+            {demoLeaderboard.map((participant, index) => (
+              <li key={participant.name}>
+                <span className="home-leaderboard-place">{String(index + 1).padStart(2, '0')}</span>
+                <span>{participant.name}</span>
+                <strong>{participant.score}<small> / 100</small></strong>
+              </li>
+            ))}
+            <li className="home-leaderboard-you">
+              <span className="home-leaderboard-place">—</span>
+              <span>Ваш результат</span>
+              <strong>{bestScore ?? '—'}{bestScore !== null && <small> / 100</small>}</strong>
+            </li>
+          </ol>
         </section>
         <button className="text-button ai-settings-entry" type="button" onClick={onOpenAISettings}>AI Settings</button>
       </main>

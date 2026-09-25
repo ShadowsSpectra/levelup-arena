@@ -99,6 +99,21 @@ test('Arena CTA is available before Training and after a failed Training for eve
   }
 })
 
+test('demo leaderboard keeps one demo disclosure and shows the selected role best score', () => {
+  const role = roles[0]
+  const progression = createInitialProgression()
+  progression.roles[role.id].bosses.example = { attempts: 1, defeated: false, bestScore: 84 }
+  const html = renderToStaticMarkup(createElement(RoleHomePage, {
+    role, roleProgress: getRoleProgress(progression, role.id),
+    energy: progression.energy, streak: progression.streak,
+    onChangeRole() {}, onOpenTraining() {}, onOpenArena() {}, onOpenAISettings() {},
+  }))
+  assert.match(html, /Демо/)
+  assert.doesNotMatch(html, /ВЗГЛЯД ВПЕРЁД|участники вымышлены|демо<\/small>|Вы /)
+  assert.match(html, /Ваш результат/)
+  assert.match(html, /<strong>84<small> \/ 100<\/small><\/strong>/)
+})
+
 test('failed Training awards only correct-answer XP and consumes Energy', () => {
   const result = resultWithCorrectAnswers(3)
   assert.equal(result.score, 60)

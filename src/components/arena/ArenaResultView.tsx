@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { getRoleById } from '../../config/roles'
 import type { ArenaEvaluationState } from '../../state/useArenaFlow'
 import type { ArenaSession, Character, Scenario } from '../../types/arena'
-import { arenaCriterionIds, type ArenaCriterionId, type ArenaOutcomeType } from '../../types/arenaEvaluation'
+import { arenaCriterionIds, type ArenaCriterionId, type ArenaEvaluation, type ArenaOutcomeType } from '../../types/arenaEvaluation'
 
 const criterionLabels: Record<ArenaCriterionId, string> = {
   interestsDiscovery: 'Выявление интересов',
@@ -21,6 +22,14 @@ const outcomeMarkers: Record<ArenaOutcomeType, string> = {
   SUCCESS: '✓',
   NO_AGREEMENT: '—',
   BAD_AGREEMENT: '!',
+}
+
+export function buildArenaShareText(roleName: string, characterName: string, evaluation: ArenaEvaluation) {
+  return [
+    `LevelUP Arena · ${roleName}`,
+    `Оппонент: ${characterName}`,
+    `${outcomeLabels[evaluation.outcome.status]} · ${evaluation.overallScore} из 100`,
+  ].join('\n')
 }
 
 type ArenaResultViewProps = {
@@ -68,6 +77,28 @@ export function ArenaTranscriptView({ character, scenario, session, onBack }: Ar
 export function ArenaResultView({ character, scenario, session, evaluation, onRetryEvaluation, onOpenAISettings,
   onTryAgain, onBackToSelection, onHome }: ArenaResultViewProps) {
   const [isViewingTranscript, setIsViewingTranscript] = useState(false)
+  const [shareNotice, setShareNotice] = useState('')
+
+  async function shareResult() {
+    if (evaluation.status !== 'success') return
+    const roleName = getRoleById(scenario.playerRole)?.name ?? scenario.playerRole
+    const text = buildArenaShareText(roleName, character.name, evaluation.result)
+    setShareNotice('')
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'LevelUP Arena', text })
+        return
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setShareNotice('Результат скопирован в буфер обмена.')
+    } catch {
+      setShareNotice('Не удалось поделиться результатом. Попробуйте ещё раз.')
+    }
+  }
 
   if (isViewingTranscript) {
     return <ArenaTranscriptView character={character} scenario={scenario} session={session}
@@ -165,9 +196,20 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
         </button>
       </div>
       <nav className="result-navigation" aria-label="Навигация после результата">
-        <button className="text-button" type="button" onClick={onBackToSelection}>К выбору оппонента</button>
-        <button className="text-button" type="button" onClick={onHome}>На главную</button>
+        <div className="result-navigation-links">
+          <button className="text-button" type="button" onClick={onBackToSelection}>К выбору оппонента</button>
+          <button className="text-button result-home-action" type="button" onClick={onHome}>На главную</button>
+        </div>
+        {evaluation.status === 'success' && (
+          <button className="text-button result-share-action" type="button" onClick={() => { void shareResult() }}>
+            <svg className="result-share-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.5 5.5 18 9m0 0-3.5 3.5M18 9H9a4 4 0 0 0-4 4v5" />
+            </svg>
+            Поделиться результатом
+          </button>
+        )}
       </nav>
+      {shareNotice && <p className="result-share-notice" role="status">{shareNotice}</p>}
     </section>
   )
 }

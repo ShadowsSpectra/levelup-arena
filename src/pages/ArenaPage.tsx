@@ -68,6 +68,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
     arena.options?.map(({ character }) => [character.id, character]) ?? [],
   ).values())
   const availableCount = characters.filter((character) => isBossUnlocked(character, roleProgress, roleProgress.level)).length
+  const defeatedCount = characters.filter((character) => roleProgress.bosses[character.id]?.defeated).length
   const characterScenarios = arena.options?.filter(
     ({ character }) => character.id === arena.selectedCharacterId,
   ) ?? []
@@ -138,10 +139,17 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                   })}
                   <div className="arena-preview-card" aria-disabled="true">
                     <strong>+ Свой оппонент</strong>
-                    <span>Возможность создать собственного AI-оппонента.</span>
-                    <small>Скоро</small>
+                    <span>Создайте AI-оппонента с собственной ролью и характером.</span>
+                    <small>Мастерская · скоро</small>
                   </div>
                 </div>
+                {characters.length > 0 && (
+                  <div className="arena-future-tier" aria-label="Будущее развитие Arena">
+                    <div className="arena-future-silhouettes" aria-hidden="true"><span /><span /><span /></div>
+                    <strong>Глава 1 · {defeatedCount} из {characters.length} оппонентов</strong>
+                    <span>Следующая глава — новые уровни и оппоненты</span>
+                  </div>
+                )}
 
                 {arena.selectedCharacterId && (
                   <section className="arena-scenario-setup" ref={scenarioSectionRef} aria-labelledby="arena-scenario-title">
@@ -157,8 +165,8 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                       ))}
                       <div className="arena-preview-card" aria-disabled="true">
                         <strong>+ Свой сценарий</strong>
-                        <span>Возможность создать собственную переговорную ситуацию.</span>
-                        <small>Скоро</small>
+                        <span>Придумайте переговорную ситуацию и предложите её сообществу.</span>
+                        <small>Мастерская · скоро</small>
                       </div>
                     </div>
 
@@ -177,7 +185,6 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                     </button>
                   </section>
                 )}
-                <p className="arena-community-preview">Мастерская сообщества — в будущем.</p>
               </>
             )}
           </>

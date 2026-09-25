@@ -14,7 +14,7 @@ const { buildEvaluatorMessages, EVALUATOR_RULES } = await vite.ssrLoadModule('/s
 const { createAIEvaluatorService } = await vite.ssrLoadModule('/server/ai/createAIEvaluatorService.ts')
 const { getEvaluatorTranscript } = await vite.ssrLoadModule('/server/ai/evaluatorTranscript.ts')
 const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
-const { ArenaResultView, ArenaTranscriptView } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
+const { ArenaResultView, ArenaTranscriptView, buildArenaShareText } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
 const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
 const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 
@@ -525,7 +525,18 @@ test('Result gives each deterministic outcome its own clear visual state', () =>
     assert.ok(html.includes(`Получено XP: <strong>${xpEarned}</strong>`))
     assert.equal((html.match(/secondary-action-button/g) ?? []).length, 1)
     assert.ok(html.includes('result-navigation'))
+    assert.ok(html.includes('Поделиться результатом'))
   }
+})
+
+test('share text uses public result fields and never includes hidden card data', () => {
+  const result = parseArenaEvaluation(JSON.stringify(resultFor('SUCCESS')), context)
+  const text = buildArenaShareText('Product Manager', character.name, result)
+  assert.match(text, /LevelUP Arena · Product Manager/)
+  assert.match(text, /Оппонент: Алексей/)
+  assert.match(text, /Успешное соглашение · 60 из 100/)
+  assert.ok(!text.includes(character.privateInformation[0]))
+  assert.ok(!text.includes(scenario.hiddenData.opponentGoal))
 })
 
 test('failed real evaluation returns no fake result and can be retried with the same completed transcript', async () => {
