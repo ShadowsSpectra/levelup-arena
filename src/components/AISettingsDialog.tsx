@@ -99,7 +99,7 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
     try {
       await request('/api/ai/check', payload())
       setStatus('connected')
-      setMessage('Подключено. Теперь сохраните настройки для Arena.')
+      setMessage('✓ Подключение успешно. Сохраните настройки, чтобы использовать AI в Arena.')
     } catch (error) {
       setStatus('error')
       setMessage(error instanceof Error ? error.message : 'Ошибка подключения.')
@@ -123,6 +123,7 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
       setMessage('Настройки сохранены для текущего запуска сервера.')
       setSettings((current) => ({ ...current, apiKey: '' }))
       onSaved()
+      onClose()
     } catch (error) {
       setStatus('error')
       setMessage(error instanceof Error ? error.message : 'Не удалось сохранить настройки.')
@@ -189,7 +190,7 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
             <button className="secondary-action-button" type="button" disabled={status === 'checking' || !editing} onClick={() => { void check() }}>
               {status === 'checking' ? 'Проверка…' : 'Проверить подключение'}
             </button>
-            <button className="primary-button" type="submit" disabled={status !== 'connected'}>Сохранить настройки</button>
+            <button className="primary-button" type="submit" disabled={status !== 'connected'}>Сохранить и закрыть</button>
           </div>
           {message && <p className={`ai-settings-status is-${status}`} role="status">{message}</p>}
         </form>

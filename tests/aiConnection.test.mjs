@@ -18,6 +18,8 @@ const { buildOpponentMessages, OPPONENT_RULES } = await vite.ssrLoadModule('/ser
 const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
 const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 const { createArenaSession, addPlayerMessage } = await vite.ssrLoadModule('/src/services/arenaSession.ts')
+const { OPENING_TYPING_MS, MIN_OPPONENT_TYPING_MS, remainingOpponentTypingMs } =
+  await vite.ssrLoadModule('/src/state/useArenaFlow.ts')
 const React = await import('react')
 
 const credentials = {
@@ -519,6 +521,23 @@ test('typing state uses the selected character and is not recorded as a message'
   assert.ok(!markup.includes(promptCharacter.privateInformation[0]))
   assert.ok(!markup.includes(promptScenario.hiddenData.discoverableFacts[0].fact))
   assert.ok(!markup.includes('Правила роли оппонента'))
+})
+
+test('opening typing is local-only, and quick replies keep typing visible briefly', () => {
+  const opening = createArenaSession(promptScenario.id, promptCharacter.id, promptScenario.openingMessage)
+  const markup = renderToStaticMarkup(React.createElement(NegotiationView, {
+    character: promptCharacter, scenario: promptScenario, session: opening, isOpening: true,
+    replyError: null, onSend: async () => true, onFinish: () => {}, onOpenAISettings: () => {},
+  }))
+  assert.equal(OPENING_TYPING_MS, 700)
+  assert.match(markup, /Мария печатает…/)
+  assert.ok(!markup.includes(promptScenario.openingMessage))
+  assert.equal((markup.match(/<article/g) ?? []).length, 0)
+  assert.equal(opening.currentTurn, 0)
+  assert.deepEqual(opening.messages.map(({ speaker }) => speaker), ['opponent'])
+  assert.equal(remainingOpponentTypingMs(1_000, 1_000), MIN_OPPONENT_TYPING_MS)
+  assert.equal(remainingOpponentTypingMs(1_000, 1_350), 150)
+  assert.equal(remainingOpponentTypingMs(1_000, 1_500), 0)
 })
 
 test('opponent failure UI keeps retry and AI Settings available without a fake reply', () => {

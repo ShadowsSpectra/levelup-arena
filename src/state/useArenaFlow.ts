@@ -5,12 +5,28 @@ import { getArenaOptions, type ArenaOption } from '../services/arenaCatalog'
 import { addOpponentReply, addPlayerMessage, createArenaSession, endArenaSession } from '../services/arenaSession'
 import type { EvaluatorService } from '../services/evaluatorService'
 import type { OpponentService } from '../services/opponentService'
+import { sanitizeOpponentReply } from '../services/opponentReply'
 import type { ArenaSession } from '../types/arena'
 import type { Character } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { ArenaAward } from '../services/progression'
 
 type ArenaStep = 'selection' | 'negotiation' | 'result'
+export const OPENING_TYPING_MS = 700
+export const MIN_OPPONENT_TYPING_MS = 500
+
+export function remainingOpponentTypingMs(
+  startedAt: number,
+  now = Date.now(),
+  minimum = MIN_OPPONENT_TYPING_MS,
+) {
+  return Math.max(0, minimum - (now - startedAt))
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds))
+}
+
 export type ArenaEvaluationState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -34,11 +50,20 @@ export function useArenaFlow(
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [session, setSession] = useState<ArenaSession | null>(null)
   const [replyError, setReplyError] = useState<string | null>(null)
+  const [isOpening, setIsOpening] = useState(false)
   const [evaluation, setEvaluation] = useState<ArenaEvaluationState>({ status: 'idle' })
   const busy = useRef(false)
   const completionRecorded = useRef(false)
   const generation = useRef(0)
   const evaluationGeneration = useRef(0)
+  const openingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function clearOpeningTimer() {
+    if (openingTimer.current !== null) {
+      clearTimeout(openingTimer.current)
+      openingTimer.current = null
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -48,7 +73,12 @@ export function useArenaFlow(
         if (import.meta.env.DEV) console.error('[Arena] Failed to load content.', error)
         if (active) setLoadError(true)
       })
-    return () => { active = false; generation.current += 1; evaluationGeneration.current += 1 }
+    return () => {
+      active = false
+      clearOpeningTimer()
+      generation.current += 1
+      evaluationGeneration.current += 1
+    }
   }, [roleId, characterSource, scenarioSource])
 
   const selected = options?.find(({ scenario, character }) =>
@@ -58,6 +88,8 @@ export function useArenaFlow(
   function chooseCharacter(id: string) {
     if (!options?.some(({ character }) => character.id === id && isCharacterUnlocked(character))) return
     generation.current += 1
+    clearOpeningTimer()
+    setIsOpening(false)
     setSelectedCharacterId(id)
     setSelectedScenarioId(null)
     setSession(null)
@@ -72,9 +104,16 @@ export function useArenaFlow(
 
   function start() {
     if (!selected || !isCharacterUnlocked(selected.character)) return
+    clearOpeningTimer()
+    const openingGeneration = ++generation.current
     setSession(createArenaSession(
       selected.scenario.id, selected.character.id, selected.scenario.openingMessage,
     ))
+    setIsOpening(true)
+    openingTimer.current = window.setTimeout(() => {
+      if (openingGeneration === generation.current) setIsOpening(false)
+      openingTimer.current = null
+    }, OPENING_TYPING_MS)
     setReplyError(null)
     evaluationGeneration.current += 1
     setEvaluation({ status: 'idle' })
@@ -107,19 +146,22 @@ export function useArenaFlow(
   }
 
   async function send(text: string): Promise<boolean> {
-    if (!selected || !session || busy.current) return false
+    if (!selected || !session || busy.current || isOpening) return false
     const pending = addPlayerMessage(session, text, selected.scenario.maxTurns)
     if (pending === session) return false
     busy.current = true
     const requestGeneration = generation.current
+    const requestStartedAt = Date.now()
     setSession(pending)
     setReplyError(null)
     try {
       const reply = await opponentService.reply({
         character: selected.character, scenario: selected.scenario, session: pending,
       })
+      const remainingTyping = remainingOpponentTypingMs(requestStartedAt)
+      if (remainingTyping > 0) await wait(remainingTyping)
       if (requestGeneration === generation.current) {
-        setSession(addOpponentReply(pending, reply, selected.scenario.maxTurns))
+        setSession(addOpponentReply(pending, sanitizeOpponentReply(reply, selected.character.name), selected.scenario.maxTurns))
       }
       return true
     } catch (error) {
@@ -134,7 +176,7 @@ export function useArenaFlow(
   }
 
   function finish() {
-    if (!session || session.status === 'responding' || completionRecorded.current) return
+    if (!session || isOpening || session.status === 'responding' || completionRecorded.current) return
     completionRecorded.current = true
     const completed = endArenaSession(session)
     onComplete(completed)
@@ -149,6 +191,8 @@ export function useArenaFlow(
 
   function backToSelection() {
     generation.current += 1
+    clearOpeningTimer()
+    setIsOpening(false)
     setSelectedCharacterId(null)
     setSelectedScenarioId(null)
     setSession(null)
@@ -159,7 +203,7 @@ export function useArenaFlow(
 
   return {
     options, loadError, step, selectedCharacterId, selectedScenarioId,
-    selected, session, replyError, evaluation,
+    selected, session, replyError, isOpening, evaluation,
     chooseCharacter, chooseScenario, start, send, finish, retryEvaluation, backToSelection,
   }
 }

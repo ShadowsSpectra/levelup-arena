@@ -26,12 +26,11 @@ type ArenaPageProps = {
   aiSettingsVersion: number
 }
 
-export function scrollToMobileArenaSection(
+export function scrollToArenaSection(
   target: Pick<HTMLElement, 'scrollIntoView'> | null,
-  isMobile: boolean,
   reducedMotion: boolean,
 ) {
-  if (!target || !isMobile) return
+  if (!target) return
   target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
 }
 
@@ -53,17 +52,15 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
   )
   useEffect(() => {
     if (arena.step !== 'selection' || !arena.selectedCharacterId) return
-    scrollToMobileArenaSection(
+    scrollToArenaSection(
       scenarioSectionRef.current,
-      window.matchMedia('(max-width: 560px)').matches,
       window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     )
   }, [arena.step, arena.selectedCharacterId])
   useEffect(() => {
     if (arena.step !== 'selection' || !arena.selectedScenarioId) return
-    scrollToMobileArenaSection(
+    scrollToArenaSection(
       scenarioBriefRef.current,
-      window.matchMedia('(max-width: 560px)').matches,
       window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     )
   }, [arena.step, arena.selectedScenarioId])
@@ -188,7 +185,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
 
         {arena.step === 'negotiation' && arena.selected && arena.session && (
           <NegotiationView character={arena.selected.character} scenario={arena.selected.scenario}
-            session={arena.session} replyError={arena.replyError}
+            session={arena.session} isOpening={arena.isOpening} replyError={arena.replyError}
             onSend={arena.send} onFinish={arena.finish} onOpenAISettings={onOpenAISettings} />
         )}
 

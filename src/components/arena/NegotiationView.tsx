@@ -6,6 +6,7 @@ type NegotiationViewProps = {
   character: Character
   scenario: Scenario
   session: ArenaSession
+  isOpening?: boolean
   replyError: string | null
   onSend: (text: string) => Promise<boolean>
   onFinish: () => void
@@ -19,21 +20,25 @@ export function scrollTranscriptToLatest(
 }
 
 export function NegotiationView({
-  character, scenario, session, replyError, onSend, onFinish, onOpenAISettings,
+  character, scenario, session, isOpening = false, replyError, onSend, onFinish, onOpenAISettings,
 }: NegotiationViewProps) {
   const [draft, setDraft] = useState('')
   const [dismissedEndingMessageId, setDismissedEndingMessageId] = useState<string | null>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const atLimit = session.status === 'turn-limit'
   const responding = session.status === 'responding'
-  const suggestedEndingMessageId = getNaturalEndingSuggestion(session, dismissedEndingMessageId)
+  const typing = responding || isOpening
+  const visibleMessages = isOpening
+    ? session.messages.filter((message) => message.id !== 'opponent-opening')
+    : session.messages
+  const suggestedEndingMessageId = isOpening ? null : getNaturalEndingSuggestion(session, dismissedEndingMessageId)
 
   useEffect(() => {
     const container = transcriptRef.current
     if (!container) return
     const frame = window.requestAnimationFrame(() => scrollTranscriptToLatest(container))
     return () => window.cancelAnimationFrame(frame)
-  }, [session.messages.length, responding])
+  }, [visibleMessages.length, typing])
 
   async function sendDraft() {
     if (await onSend(draft)) setDraft('')
@@ -53,20 +58,20 @@ export function NegotiationView({
           <p>{character.name} · {character.role}</p>
         </div>
         {!atLimit && (
-          <button className="secondary-action-button" type="button" disabled={responding} onClick={onFinish}>
+          <button className="secondary-action-button" type="button" disabled={typing} onClick={onFinish}>
             Завершить переговоры
           </button>
         )}
       </div>
 
       <div className="arena-transcript" ref={transcriptRef} aria-live="polite" aria-label="История переговоров">
-        {session.messages.map((message) => (
+        {visibleMessages.map((message) => (
           <article className={`arena-message arena-message-${message.speaker}`} key={message.id}>
             <span>{message.speaker === 'player' ? 'Вы' : `${character.name} · ${character.role}`}</span>
             <p>{message.text}</p>
           </article>
         ))}
-        {responding && (
+        {typing && (
           <div className="arena-typing" role="status">
             <span className="arena-typing-dot" aria-hidden="true" />
             {character.name} печатает…
@@ -107,11 +112,11 @@ export function NegotiationView({
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault()
-                if (draft.trim() && !responding) void sendDraft()
+                if (draft.trim() && !typing) void sendDraft()
               }
             }}
-            placeholder="Напишите вашу реплику…" rows={3} disabled={responding} />
-          <button className="primary-button" type="submit" disabled={!draft.trim() || responding}>
+            placeholder="Напишите вашу реплику…" rows={3} disabled={typing} />
+          <button className="primary-button" type="submit" disabled={!draft.trim() || typing}>
             Отправить
           </button>
         </form>

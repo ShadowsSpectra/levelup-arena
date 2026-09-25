@@ -257,6 +257,36 @@ test('feedback fixes common second-person agreement without changing transcript 
   criterionIds.forEach((id, index) => assert.equal(grammatical.scores[id].reason, pastForms[index][1]))
   assert.deepEqual(grammatical.improvements, ['Вы не связали проблему с проверкой пользы.'])
   assert.equal(grammatical.scores.argumentation.evidence, session.messages[3].text)
+
+  const recurring = resultFor()
+  const recurringForms = [
+    ['Вы должен уточнить интересы.', 'Вы должны уточнить интересы.'],
+    ['Вы не предложил обмен.', 'Вы не предложили обмен.'],
+    ['Вы не обработал возражение.', 'Вы не обработали возражение.'],
+    ['Вы не адаптировал подход.', 'Вы не адаптировали подход.'],
+    ['Вы не продвинулся к плану.', 'Вы не продвинулись к плану.'],
+  ]
+  criterionIds.forEach((id, index) => { recurring.scores[id].reason = recurringForms[index][0] })
+  recurring.improvements = ['Вы не пытается выяснить причину.', 'Вы пытался уточнить сроки.']
+  const polished = parseArenaEvaluation(JSON.stringify(recurring), context)
+  criterionIds.forEach((id, index) => assert.equal(polished.scores[id].reason, recurringForms[index][1]))
+  assert.deepEqual(polished.improvements, ['Вы не пытаетесь выяснить причину.', 'Вы пытались уточнить сроки.'])
+  assert.equal(polished.scores.communicationAdaptability.evidence, session.messages[1].text)
+})
+
+test('feedback corrects live выяснял/обосновал forms without rewriting evidence', () => {
+  const output = resultFor()
+  output.scores.interestsDiscovery.reason = 'Вы активно выяснял причины.'
+  output.scores.argumentation.reason = 'Вы обосновал своё предложение.'
+  output.strengths = ['Вы активно выяснял причины.']
+  output.mainInsight.insight = 'Вы обосновал своё предложение; повторите этот подход.'
+  const result = parseArenaEvaluation(JSON.stringify(output), context)
+  assert.equal(result.scores.interestsDiscovery.reason, 'Вы активно выясняли причины.')
+  assert.equal(result.scores.argumentation.reason, 'Вы обосновали своё предложение.')
+  assert.deepEqual(result.strengths, ['Вы активно выясняли причины.'])
+  assert.equal(result.mainInsight.insight, 'Вы обосновали своё предложение; повторите этот подход.')
+  assert.equal(result.scores.interestsDiscovery.evidence, session.messages[1].text)
+  assert.equal(result.scores.argumentation.evidence, session.messages[3].text)
 })
 
 test('Olga trajectories keep later meaningful skill evidence available without inflating bad play', async () => {
