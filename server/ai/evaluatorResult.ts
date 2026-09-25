@@ -35,9 +35,13 @@ function text(value: unknown, field: string, maximum = Number.POSITIVE_INFINITY)
 
 const playerVerbForms: Readonly<Record<string, string>> = {
   сделал: 'сделали', задал: 'задали', предложил: 'предложили', спросил: 'спросили',
-  уточнил: 'уточнили', начал: 'начали', выяснил: 'выяснили', выясняет: 'выясняете',
+  уточнил: 'уточнили', начал: 'начали', выявил: 'выявили', выяснил: 'выяснили', выясняет: 'выясняете',
   использовал: 'использовали', отметил: 'отметили', показал: 'показали',
   проигнорировал: 'проигнорировали', учитывал: 'учитывали', адаптировался: 'адаптировались',
+  исследовал: 'исследовали', проявил: 'проявили', спрашивает: 'спрашиваете',
+  предлагает: 'предлагаете', адаптирует: 'адаптируете', обосновывает: 'обосновываете',
+  обработал: 'обработали', адаптировал: 'адаптировали', предоставил: 'предоставили',
+  продвинулся: 'продвинулись', углубил: 'углубили', связал: 'связали',
 }
 
 function normalizeEvaluatorProse(value: string): string {
@@ -55,7 +59,7 @@ function normalizeEvaluatorProse(value: string): string {
     .replace(/\b(?:OPPONENT|assistant)\b/gi, 'оппонент')
     .replace(/\bsystem\b/gi, 'система')
   return roles.replace(
-    /((?:Вы|вы)(?:\s+\p{L}+){0,2}\s+)(сделал|задал|предложил|спросил|уточнил|начал|выяснил|выясняет|использовал|отметил|показал|проигнорировал|учитывал|адаптировался)(?!\p{L})/giu,
+    /((?:Вы|вы)(?:\s+\p{L}+){0,2}\s+)(сделал|задал|предложил|спросил|уточнил|начал|выявил|выяснил|выясняет|использовал|отметил|показал|проигнорировал|учитывал|адаптировался|исследовал|проявил|спрашивает|предлагает|адаптирует|обосновывает|обработал|адаптировал|предоставил|продвинулся|углубил|связал)(?!\p{L})/giu,
     (_match, prefix: string, verb: string) => `${prefix}${playerVerbForms[verb.toLowerCase()]}`,
   )
 }
@@ -79,6 +83,28 @@ function playerEvidence(value: unknown, field: string, playerMessages: Map<strin
   return playerMessages.get(value)!
 }
 
+function isBareAcceptance(evidence: string): boolean {
+  const words = evidence.toLocaleLowerCase().match(/\p{L}+/gu) ?? []
+  return words.length > 0 && words.length <= 2 && words.every((word) =>
+    ['да', 'согласен', 'согласна', 'ок', 'окей', 'хорошо', 'подходит', 'принимаю'].includes(word))
+}
+
+function isRepetitiveFiller(evidence: string): boolean {
+  const words = evidence.toLocaleLowerCase().match(/\p{L}+/gu) ?? []
+  return words.length >= 3 && new Set(words).size === 1
+}
+
+function validateEvidenceClaim(id: string, score: number, evidence: string, reason: string) {
+  // These are narrow integrity checks, not a second semantic scorer.
+  if (isBareAcceptance(evidence) &&
+    /(?<![\p{L}\p{N}])Вы(?:\s+\p{L}+){0,2}\s+(?:предложили|инициировали|выдвинули|сформулировали|предлагаете)(?!\p{L})/iu.test(reason)) {
+    throw new EvaluationValidationError(`scores.${id}.evidence does not support claimed player initiative.`)
+  }
+  if (id === 'argumentation' && score >= 61 && isRepetitiveFiller(evidence)) {
+    throw new EvaluationValidationError('scores.argumentation.evidence does not support a good argumentation score.')
+  }
+}
+
 function mainInsight(value: unknown, playerMessages: Map<string, string>): ArenaMainInsight {
   if (!record(value) || !exactKeys(value, ['evidenceMessageId', 'insight'])) {
     throw new EvaluationValidationError('Invalid mainInsight structure.')
@@ -96,7 +122,9 @@ function criterion(value: unknown, id: string, playerMessages: Map<string, strin
     throw new EvaluationValidationError(`Invalid scores.${id}.score.`)
   }
   const evidence = playerEvidence(value.evidenceMessageId, `scores.${id}.evidenceMessageId`, playerMessages)
-  return { score: Number(value.score), evidence, reason: userFacingText(value.reason, `scores.${id}.reason`) }
+  const reason = userFacingText(value.reason, `scores.${id}.reason`)
+  validateEvidenceClaim(id, Number(value.score), evidence, reason)
+  return { score: Number(value.score), evidence, reason }
 }
 
 function semanticFacts(value: unknown): ArenaSemanticFacts {

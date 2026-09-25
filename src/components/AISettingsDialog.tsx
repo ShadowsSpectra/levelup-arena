@@ -141,7 +141,7 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
           </div>
           <button className="text-button" type="button" onClick={onClose} aria-label="Закрыть настройки AI">Закрыть</button>
         </div>
-        <p>Настройте модель для ответов оппонента. Без настройки Arena использует Mock.</p>
+        <p>Настройте модель для Arena. Без подключения AI переговоры не смогут продолжиться.</p>
         {savedConfig && (
           <div className="ai-settings-configured" role="status">
             <strong>AI настроен</strong>

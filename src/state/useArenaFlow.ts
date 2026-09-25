@@ -33,7 +33,7 @@ export function useArenaFlow(
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null)
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null)
   const [session, setSession] = useState<ArenaSession | null>(null)
-  const [replyError, setReplyError] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
   const [evaluation, setEvaluation] = useState<ArenaEvaluationState>({ status: 'idle' })
   const busy = useRef(false)
   const completionRecorded = useRef(false)
@@ -75,7 +75,7 @@ export function useArenaFlow(
     setSession(createArenaSession(
       selected.scenario.id, selected.character.id, selected.scenario.openingMessage,
     ))
-    setReplyError(false)
+    setReplyError(null)
     evaluationGeneration.current += 1
     setEvaluation({ status: 'idle' })
     completionRecorded.current = false
@@ -113,7 +113,7 @@ export function useArenaFlow(
     busy.current = true
     const requestGeneration = generation.current
     setSession(pending)
-    setReplyError(false)
+    setReplyError(null)
     try {
       const reply = await opponentService.reply({
         character: selected.character, scenario: selected.scenario, session: pending,
@@ -123,10 +123,9 @@ export function useArenaFlow(
       }
       return true
     } catch (error) {
-      if (import.meta.env.DEV) console.error('[Arena] Opponent reply failed.', error)
       if (requestGeneration === generation.current) {
         setSession(session)
-        setReplyError(true)
+        setReplyError(error instanceof Error ? error.message : 'AI недоступен. Повторите отправку.')
       }
       return false
     } finally {

@@ -6,10 +6,10 @@ type NegotiationViewProps = {
   character: Character
   scenario: Scenario
   session: ArenaSession
-  replyError: boolean
-  fallbackNotice: string | null
+  replyError: string | null
   onSend: (text: string) => Promise<boolean>
   onFinish: () => void
+  onOpenAISettings: () => void
 }
 
 export function scrollTranscriptToLatest(
@@ -19,7 +19,7 @@ export function scrollTranscriptToLatest(
 }
 
 export function NegotiationView({
-  character, scenario, session, replyError, fallbackNotice, onSend, onFinish,
+  character, scenario, session, replyError, onSend, onFinish, onOpenAISettings,
 }: NegotiationViewProps) {
   const [draft, setDraft] = useState('')
   const [dismissedEndingMessageId, setDismissedEndingMessageId] = useState<string | null>(null)
@@ -74,8 +74,16 @@ export function NegotiationView({
         )}
       </div>
 
-      {replyError && <p className="arena-error" role="alert">Не удалось получить ответ. Попробуйте отправить сообщение ещё раз.</p>}
-      {!responding && fallbackNotice && <p className="arena-fallback-notice" role="status">{fallbackNotice}</p>}
+      {replyError && (
+        <div className="arena-error" role="alert">
+          <p>Ответ Real AI не получен. Ваше сообщение осталось в поле ввода; ход не засчитан.</p>
+          <p>{replyError}</p>
+          <button className="secondary-action-button" type="button" disabled={!draft.trim()} onClick={() => void sendDraft()}>
+            Повторить отправку
+          </button>{' '}
+          <button className="secondary-action-button" type="button" onClick={onOpenAISettings}>AI Settings</button>
+        </div>
+      )}
       {suggestedEndingMessageId && (
         <div className="arena-ending-suggestion" role="status">
           <strong>Похоже, переговоры завершены</strong>

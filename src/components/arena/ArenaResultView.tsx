@@ -22,12 +22,13 @@ type ArenaResultViewProps = {
   session: ArenaSession
   evaluation: ArenaEvaluationState
   onRetryEvaluation: () => void
+  onOpenAISettings: () => void
   onTryAgain: () => void
   onBackToSelection: () => void
   onHome: () => void
 }
 
-export function ArenaResultView({ character, scenario, session, evaluation, onRetryEvaluation,
+export function ArenaResultView({ character, scenario, session, evaluation, onRetryEvaluation, onOpenAISettings,
   onTryAgain, onBackToSelection, onHome }: ArenaResultViewProps) {
   return (
     <section className="arena-result" aria-labelledby="arena-result-title">
@@ -54,6 +55,7 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
           <button className="secondary-action-button" type="button" onClick={onRetryEvaluation}>
             Повторить оценку
           </button>
+          <button className="secondary-action-button" type="button" onClick={onOpenAISettings}>AI Settings</button>
         </div>
       )}
 

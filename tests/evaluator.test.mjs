@@ -15,6 +15,8 @@ const { createAIEvaluatorService } = await vite.ssrLoadModule('/server/ai/create
 const { getEvaluatorTranscript } = await vite.ssrLoadModule('/server/ai/evaluatorTranscript.ts')
 const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
 const { ArenaResultView } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
+const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
+const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 
 const character = {
   id: 'alexey-test', name: 'Алексей', role: 'Tech Lead', difficulty: 1,
@@ -132,6 +134,21 @@ test('criterion scores use the full 0–100 scale and small-scale responses are 
   const scores = [0, 25, 50, 75, 100]
   criterionIds.forEach((id, index) => { fullScale.scores[id].score = scores[index] })
   assert.equal(parseArenaEvaluation(JSON.stringify(fullScale), context).overallScore, 50)
+  const absent = resultFor()
+  criterionIds.forEach((id) => { absent.scores[id].score = 0 })
+  absent.strengths = []
+  const absentEvaluation = parseArenaEvaluation(JSON.stringify(absent), context)
+  assert.equal(absentEvaluation.overallScore, 0)
+  assert.deepEqual(absentEvaluation.strengths, [])
+  const strong = resultFor()
+  criterionIds.forEach((id) => { strong.scores[id].score = 95 })
+  strong.facts.playerMinimumSatisfied = false
+  const strongBadAgreement = parseArenaEvaluation(JSON.stringify(strong), context)
+  assert.equal(strongBadAgreement.overallScore, 95)
+  assert.equal(strongBadAgreement.outcome.status, 'BAD_AGREEMENT')
+  const weak = resultFor()
+  criterionIds.forEach((id) => { weak.scores[id].score = 0 })
+  assert.equal(parseArenaEvaluation(JSON.stringify(weak), context).outcome.status, 'SUCCESS')
 })
 
 test('player evidence IDs are stable by transcript order and resolve to untouched original messages', () => {
@@ -199,13 +216,162 @@ test('user-facing prose normalizes role labels while Main Insight remains ground
   const html = renderToStaticMarkup(React.createElement(ArenaResultView, {
     character, scenario, session, evaluation: { status: 'success', result: validated,
       award: { xpEarned: 50, bossDefeated: true } },
-    onRetryEvaluation() {}, onTryAgain() {}, onBackToSelection() {}, onHome() {},
+    onRetryEvaluation() {}, onOpenAISettings() {}, onTryAgain() {}, onBackToSelection() {}, onHome() {},
   }))
   assert.doesNotMatch(html, /\b(?:PLAYER|OPPONENT|assistant|user|system)\b/i)
   assert.ok(html.includes('Главный вывод'))
   assert.ok(html.includes(validated.mainInsight.insight))
   assert.ok(html.includes(`«${validated.mainInsight.evidence}»`))
   assert.ok(!html.includes('evidenceMessageId'))
+})
+
+test('feedback fixes common second-person agreement without changing transcript evidence', () => {
+  const malformedGrammar = resultFor()
+  const samples = [
+    ['Вы не выявил потребность.', 'Вы не выявили потребность.'],
+    ['Вы спрашивает о цене.', 'Вы спрашиваете о цене.'],
+    ['Вы предлагает скидку.', 'Вы предлагаете скидку.'],
+    ['Вы адаптирует подход.', 'Вы адаптируете подход.'],
+    ['Вы обосновывает цену.', 'Вы обосновываете цену.'],
+  ]
+  criterionIds.forEach((id, index) => { malformedGrammar.scores[id].reason = samples[index][0] })
+  malformedGrammar.strengths = ['Вы активно исследовал интересы.']
+  malformedGrammar.improvements = ['Вы проявил нетерпение.']
+  const checked = parseArenaEvaluation(JSON.stringify(malformedGrammar), context)
+  criterionIds.forEach((id, index) => assert.equal(checked.scores[id].reason, samples[index][1]))
+  assert.deepEqual(checked.strengths, ['Вы активно исследовали интересы.'])
+  assert.deepEqual(checked.improvements, ['Вы проявили нетерпение.'])
+  assert.equal(checked.scores.interestsDiscovery.evidence, session.messages[1].text)
+
+  const moreGrammar = resultFor()
+  const pastForms = [
+    ['Вы не обработал возражение.', 'Вы не обработали возражение.'],
+    ['Вы не адаптировал подход.', 'Вы не адаптировали подход.'],
+    ['Вы не предоставил основания.', 'Вы не предоставили основания.'],
+    ['Вы не продвинулся к решению.', 'Вы не продвинулись к решению.'],
+    ['Вы не углубил вопрос.', 'Вы не углубили вопрос.'],
+  ]
+  criterionIds.forEach((id, index) => { moreGrammar.scores[id].reason = pastForms[index][0] })
+  moreGrammar.improvements = ['Вы не связал проблему с проверкой пользы.']
+  const grammatical = parseArenaEvaluation(JSON.stringify(moreGrammar), context)
+  criterionIds.forEach((id, index) => assert.equal(grammatical.scores[id].reason, pastForms[index][1]))
+  assert.deepEqual(grammatical.improvements, ['Вы не связали проблему с проверкой пользы.'])
+  assert.equal(grammatical.scores.argumentation.evidence, session.messages[3].text)
+})
+
+test('Olga trajectories keep later meaningful skill evidence available without inflating bad play', async () => {
+  const [olga] = await getArenaOptions('sales_manager', localCharacterSource, localScenarioSource)
+  const positive = { id: 'olga-positive', scenarioId: olga.scenario.id,
+    characterId: olga.character.id, currentTurn: 5, status: 'completed', messages: [
+      { id: 'o0', speaker: 'opponent', text: olga.scenario.openingMessage },
+      { id: 'p1', speaker: 'player', text: 'Что в текущем решении отнимает у команды больше всего времени?' },
+      { id: 'o1', speaker: 'opponent', text: 'Много времени уходит на ручные операции.' },
+      { id: 'p2', speaker: 'player', text: 'Что сложнее: ручные операции или сбор данных для отчётов?' },
+      { id: 'o2', speaker: 'opponent', text: 'Сбор данных для отчётов отнимает больше всего времени.' },
+      { id: 'p3', speaker: 'player', text: 'Вместо полной миграции предлагаю небольшой пилот.' },
+      { id: 'o3', speaker: 'opponent', text: 'Как он поможет с нашей отчётностью?' },
+      { id: 'p4', speaker: 'player', text: 'Мы автоматизируем сбор данных.' },
+      { id: 'o4', speaker: 'opponent', text: 'Покажите это на нашем рабочем процессе.' },
+      { id: 'p5', speaker: 'player', text: 'Возьмём один реальный отчёт, сравним время сбора до и после пилота; если будет экономия, обсудим дальнейшее внедрение.' },
+      { id: 'o5', speaker: 'opponent', text: 'Согласна, давайте назначим демонстрацию.' },
+    ] }
+  const positiveMessages = buildEvaluatorMessages({ ...olga, session: positive })
+  const positivePayload = JSON.parse(positiveMessages[1].content.slice(positiveMessages[1].content.indexOf('{')))
+  assert.deepEqual(positivePayload.transcript.filter(({ speaker }) => speaker === 'PLAYER')
+    .map(({ evidenceMessageId }) => evidenceMessageId), ['P1', 'P2', 'P3', 'P4', 'P5'])
+  assert.equal(positivePayload.transcript[9].text, positive.messages[9].text)
+  for (const guidance of ['ВСЕ реплики PLAYER', 'Учитывай позднее улучшение',
+    'одна сильная финальная фраза не стирает устойчивые ошибки', 'не повторяй P1 механически',
+    'уточнений, ведущих к конкретной потребности', 'выяснение причины, снижение риска',
+    'изменение предложения/шага', 'проблема → проверка/причина → измеримая ценность → решение',
+    'проверка на реальной задаче с критерием']) {
+    assert.ok(positiveMessages[0].content.includes(guidance), guidance)
+  }
+  assert.doesNotMatch(positiveMessages[0].content, /"score":45|"evidenceMessageId":"P1"/)
+  const laterEvidence = resultFor()
+  laterEvidence.scores.interestsDiscovery.evidenceMessageId = 'P2'
+  laterEvidence.scores.objectionHandling.evidenceMessageId = 'P3'
+  laterEvidence.scores.communicationAdaptability.evidenceMessageId = 'P5'
+  laterEvidence.scores.argumentation.evidenceMessageId = 'P5'
+  laterEvidence.scores.initiative.evidenceMessageId = 'P5'
+  const accepted = parseArenaEvaluation(JSON.stringify(laterEvidence), { ...olga, session: positive })
+  assert.equal(accepted.scores.argumentation.evidence, positive.messages[9].text)
+  assert.equal(accepted.scores.interestsDiscovery.evidence, positive.messages[3].text)
+
+  const negative = structuredClone(positive)
+  negative.messages = [
+    positive.messages[0],
+    { id: 'bad1', speaker: 'player', text: 'Наш продукт лучше. Переходите.' },
+    { id: 'bad2', speaker: 'player', text: 'Потому что он современнее и удобнее. Тут нечего обсуждать.' },
+    { id: 'bad3', speaker: 'player', text: 'Бла бла бла.' },
+    { id: 'bad4', speaker: 'player', text: 'Будете переходить или нет?' },
+  ]
+  negative.currentTurn = 4
+  const negativeMessages = buildEvaluatorMessages({ ...olga, session: negative })
+  for (const rule of ['Бессмыслица', 'Оскорбления', 'Оцени качество действия',
+    '0 и 90+ допустимы']) assert.ok(negativeMessages[0].content.includes(rule))
+  const inflated = resultFor()
+  inflated.scores.argumentation.score = 70
+  inflated.scores.argumentation.evidenceMessageId = 'P3'
+  assert.throws(() => parseArenaEvaluation(JSON.stringify(inflated), { ...olga, session: negative }),
+    /does not support a good argumentation score/)
+  const calibrated = resultFor()
+  criterionIds.forEach((id) => { calibrated.scores[id].score = 0 })
+  calibrated.strengths = []
+  assert.equal(parseArenaEvaluation(JSON.stringify(calibrated), { ...olga, session: negative }).overallScore, 0)
+})
+
+test('Evaluator context preserves proposal ownership and seller reciprocity facts', async () => {
+  const [, maksim] = await getArenaOptions('sales_manager', localCharacterSource, localScenarioSource)
+  const negotiation = { id: 'attribution-case', scenarioId: maksim.scenario.id,
+    characterId: maksim.character.id, currentTurn: 2, status: 'completed', messages: [
+      { id: 'o1', speaker: 'opponent', text: maksim.scenario.openingMessage },
+      { id: 'p1', speaker: 'player', text: 'Снижаем цену и включаем внедрение с поддержкой без встречных обязательств.' },
+      { id: 'o2', speaker: 'opponent', text: 'Можете ли вы согласовать годовой договор с возможностью продления?' },
+      { id: 'p2', speaker: 'player', text: 'Да.' },
+    ] }
+  const messages = buildEvaluatorMessages({ ...maksim, session: negotiation })
+  const payload = JSON.parse(messages[1].content.slice(messages[1].content.indexOf('{')))
+  assert.deepEqual(payload.transcript.map(({ speaker, evidenceMessageId }) => [speaker, evidenceMessageId]), [
+    ['OPPONENT', undefined], ['PLAYER', 'P1'], ['OPPONENT', undefined], ['PLAYER', 'P2'],
+  ])
+  assert.equal(payload.transcript[2].text, negotiation.messages[2].text)
+  assert.equal(payload.transcript[3].text, 'Да.')
+  assert.ok(messages[1].content.includes(maksim.scenario.successConditions.playerMinimumConditions[0]))
+  for (const instruction of ['автора каждого условия', 'Принятие не означает авторство',
+    'не совпадение слов с validAgreementPaths', 'Покупка на подаренных продавцом условиях',
+    'Явный отказ от встречных обязательств', '«Да» на предложение оппонента не доказывает']) {
+    assert.ok(messages[0].content.includes(instruction), instruction)
+  }
+  const acceptedOnly = resultFor()
+  acceptedOnly.facts.playerMinimumSatisfied = false
+  acceptedOnly.scores.initiative.score = 0
+  acceptedOnly.scores.initiative.evidenceMessageId = 'P2'
+  acceptedOnly.scores.initiative.reason = 'Вы лишь приняли предложение оппонента, не предложив встречного условия.'
+  const evaluated = parseArenaEvaluation(JSON.stringify(acceptedOnly), { ...maksim, session: negotiation })
+  assert.equal(evaluated.scores.initiative.evidence, 'Да.')
+  assert.equal(evaluated.outcome.status, 'BAD_AGREEMENT')
+  assert.equal(evaluated.outcome.bossDefeated, false)
+
+  const falselyCredited = structuredClone(acceptedOnly)
+  falselyCredited.scores.initiative.score = 55
+  falselyCredited.scores.initiative.reason = 'Вы предложили годовой договор с продлением.'
+  assert.throws(() => parseArenaEvaluation(JSON.stringify(falselyCredited), { ...maksim, session: negotiation }),
+    /does not support claimed player initiative/)
+})
+
+test('repeated filler cannot substantiate good argumentation, but low score remains valid', () => {
+  const fillerContext = structuredClone(context)
+  fillerContext.session.messages[1].text = 'бла бла бла'
+  const inflated = resultFor()
+  inflated.scores.argumentation.evidenceMessageId = 'P1'
+  inflated.scores.argumentation.score = 70
+  inflated.scores.argumentation.reason = 'Вы обосновали ценность решения.'
+  assert.throws(() => parseArenaEvaluation(JSON.stringify(inflated), fillerContext),
+    /does not support a good argumentation score/)
+  inflated.scores.argumentation.score = 0
+  inflated.scores.argumentation.reason = 'Вы не привели содержательного довода.'
+  assert.equal(parseArenaEvaluation(JSON.stringify(inflated), fillerContext).scores.argumentation.score, 0)
 })
 
 test('malformed output and leaked hidden information are rejected', () => {
@@ -220,13 +386,14 @@ test('Evaluator prompt receives full cards and transcript while keeping evaluato
   assert.equal(messages[0].role, 'system')
   for (const rule of ['concreteMutualAgreement', 'validAgreementPaths', 'communicationAdaptability',
     'evidenceMessageId', 'Не раскрывай privateInformation',
-    '0–100', '0–20', '21–40', '41–60', '61–80', '81–100',
-    'игнорировано', 'не оценивай как средний', 'Балл, ID и reason должны согласовываться',
-    'mainInsight', 'Верни только JSON', 'Не добавляй HTML']) {
+    '0–100', '0 —', '1–20', '21–40', '41–60', '61–80', '81–100',
+    'не оценивай как средний', 'Evidence должен подтверждать',
+    'Бессмыслица', 'Оскорбления', 'strengths — 0–3',
+    'mainInsight', 'Верни только JSON', 'без HTML']) {
     assert.ok(EVALUATOR_RULES.includes(rule))
   }
   assert.doesNotMatch(EVALUATOR_RULES, /\b(?:overallScore|bossDefeated|status)\b/)
-  assert.ok(EVALUATOR_RULES.length < 3500)
+  assert.ok(EVALUATOR_RULES.length < 4500)
   for (const value of [character.privateInformation[0], scenario.hiddenData.opponentGoal,
     scenario.validAgreementPaths[0], session.messages[1].text, session.messages[3].text]) {
     assert.ok(messages[1].content.includes(value))
@@ -258,7 +425,7 @@ test('Evaluator selects its own model and requests structured JSON independently
 })
 
 test('Result never renders hidden card data and exposes an explicit recoverable error state', () => {
-  const baseProps = { character, scenario, session, onRetryEvaluation() {}, onTryAgain() {},
+  const baseProps = { character, scenario, session, onRetryEvaluation() {}, onOpenAISettings() {}, onTryAgain() {},
     onBackToSelection() {}, onHome() {} }
   const success = renderToStaticMarkup(React.createElement(ArenaResultView, {
     ...baseProps, evaluation: { status: 'success', result: parseArenaEvaluation(JSON.stringify(resultFor()), context),
@@ -281,6 +448,7 @@ test('Result never renders hidden card data and exposes an explicit recoverable 
     ...baseProps, evaluation: { status: 'error', message: 'Ответ Evaluator не прошёл проверку.' },
   }))
   assert.ok(failure.includes('Повторить оценку'))
+  assert.ok(failure.includes('AI Settings'))
   assert.ok(failure.includes('диалог не потерян'))
   assert.ok(!failure.includes('Mock'))
 })

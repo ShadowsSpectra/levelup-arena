@@ -4,7 +4,7 @@ import { ArenaResultView } from '../components/arena/ArenaResultView'
 import type { Role } from '../config/roles'
 import { localCharacterSource, localScenarioSource } from '../content/arenaSources'
 import { getCharacterPublicProfile, getDifficultyStars } from '../services/characterProfile'
-import { createBrowserOpponentService, getAIMode, type AIMode } from '../services/arenaOpponentGateway'
+import { createBrowserOpponentService, getAIStatus, type AIStatus } from '../services/arenaOpponentGateway'
 import { createBrowserEvaluatorService } from '../services/evaluatorService'
 import { useEffect, useMemo, useState } from 'react'
 import type { getRoleProgress } from '../services/progression'
@@ -28,14 +28,12 @@ type ArenaPageProps = {
 
 export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
   onOpenAISettings, aiSettingsVersion }: ArenaPageProps) {
-  const [configuredMode, setConfiguredMode] = useState<AIMode>('mock')
-  const [lastReplyMode, setLastReplyMode] = useState<AIMode | null>(null)
-  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
-  const opponentService = useMemo(() => createBrowserOpponentService(setLastReplyMode, setFallbackNotice), [])
+  const [aiStatus, setAIStatus] = useState<AIStatus>('unavailable')
+  const opponentService = useMemo(() => createBrowserOpponentService(), [])
   const evaluatorService = useMemo(() => createBrowserEvaluatorService(), [])
   useEffect(() => {
     let active = true
-    getAIMode().then((mode) => { if (active) setConfiguredMode(mode) })
+    getAIStatus().then((status) => { if (active) setAIStatus(status) })
     return () => { active = false }
   }, [aiSettingsVersion])
   const arena = useArenaFlow(
@@ -51,8 +49,6 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
   ) ?? []
 
   function startNegotiation() {
-    setFallbackNotice(null)
-    setLastReplyMode(null)
     arena.start()
   }
 
@@ -64,8 +60,9 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
         <div className="arena-ai-toolbar">
           <span className="arena-ai-mode" role="status">
             {arena.session?.status === 'responding'
-              ? 'Ожидаем ответ оппонента…'
-              : `${lastReplyMode ? 'Ответы' : 'Режим'}: ${(lastReplyMode ?? configuredMode) === 'real' ? 'Real AI' : 'Mock'}`}
+              ? 'Ожидаем ответ Real AI…'
+              : aiStatus === 'real' ? 'Режим: Real AI'
+                : aiStatus === 'unconfigured' ? 'AI не настроен' : 'AI-сервер недоступен'}
           </span>
           <button className="text-button" type="button" onClick={onOpenAISettings}>AI Settings</button>
         </div>
@@ -164,14 +161,14 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
 
         {arena.step === 'negotiation' && arena.selected && arena.session && (
           <NegotiationView character={arena.selected.character} scenario={arena.selected.scenario}
-            session={arena.session} replyError={arena.replyError} fallbackNotice={fallbackNotice}
-            onSend={arena.send} onFinish={arena.finish} />
+            session={arena.session} replyError={arena.replyError}
+            onSend={arena.send} onFinish={arena.finish} onOpenAISettings={onOpenAISettings} />
         )}
 
         {arena.step === 'result' && arena.selected && arena.session && (
           <ArenaResultView character={arena.selected.character} scenario={arena.selected.scenario}
             session={arena.session} evaluation={arena.evaluation}
-            onRetryEvaluation={arena.retryEvaluation} onTryAgain={startNegotiation}
+            onRetryEvaluation={arena.retryEvaluation} onOpenAISettings={onOpenAISettings} onTryAgain={startNegotiation}
             onBackToSelection={arena.backToSelection} onHome={onBack} />
         )}
       </main>

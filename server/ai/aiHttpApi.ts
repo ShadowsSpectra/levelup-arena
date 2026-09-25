@@ -1,5 +1,4 @@
 import type { ArenaSession, Character, Scenario } from '../../src/types/arena'
-import { mockOpponentService } from '../../src/services/opponentService'
 import { createAIOpponentService } from './createAIOpponentService'
 import { createAIEvaluatorService } from './createAIEvaluatorService'
 import { createAISettingsStore, validateAISettings, type AISettings } from './aiSettings'
@@ -131,32 +130,23 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
           throw new Error('Некорректный контекст переговоров.')
         }
         const configured = settings.get()
-        if (configured) {
-          try {
-            const service = createAIOpponentService({
-              config: {
-                serverEndpoint: '/api/ai/opponent',
-                models: { opponent: {
-                  provider: configured.provider, model: configured.model, apiEndpoint: configured.baseUrl,
-                } },
-              },
-              providers: {
-                'openai-compatible': createOpenAICompatibleProvider(() => configured.apiKey, options.fetcher),
-              },
-              createMessages: buildOpponentMessages,
-            })
-            send(res, 200, { reply: await service.reply(context), mode: 'real' })
-            return
-          } catch (error) {
-            // In demo mode a genuine provider failure must not interrupt an Arena session.
-            const warning = error instanceof AIProviderError && error.kind === 'timeout'
-              ? 'Ожидание AI истекло. Показан Mock-ответ.'
-              : 'AI недоступен. Показан Mock-ответ.'
-            send(res, 200, { reply: await mockOpponentService.reply(context), mode: 'mock', warning })
-            return
-          }
+        if (!configured) {
+          send(res, 409, { error: 'AI не настроен. Откройте AI Settings и повторите отправку.' })
+          return
         }
-        send(res, 200, { reply: await mockOpponentService.reply(context), mode: 'mock' })
+        const service = createAIOpponentService({
+          config: {
+            serverEndpoint: '/api/ai/opponent',
+            models: { opponent: {
+              provider: configured.provider, model: configured.model, apiEndpoint: configured.baseUrl,
+            } },
+          },
+          providers: {
+            'openai-compatible': createOpenAICompatibleProvider(() => configured.apiKey, options.fetcher),
+          },
+          createMessages: buildOpponentMessages,
+        })
+        send(res, 200, { reply: await service.reply(context), mode: 'real' })
       } else {
         send(res, 404, { error: 'AI endpoint не найден.' })
       }

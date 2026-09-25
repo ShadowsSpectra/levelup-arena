@@ -52,7 +52,8 @@ test('Project boss cards load in order through generic sources with complete sce
     assert.ok(scenario.validAgreementPaths.length >= 3)
     assert.ok(scenario.badAgreementExamples.length >= 3)
   }
-  assert.equal((await getArenaOptions('sales_manager', localCharacterSource, localScenarioSource)).length, 0)
+  assert.deepEqual((await getArenaOptions('sales_manager', localCharacterSource, localScenarioSource))
+    .map(({ character }) => character.id), ['olga_potential_client_01', 'maksim_procurement_02'])
 })
 
 test('Project Boss #1 is immediate; Boss #2 requires both Project Level 2 and Andrey defeated', async () => {

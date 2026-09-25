@@ -22,8 +22,8 @@ function view(session) {
   return renderToStaticMarkup(createElement(NegotiationView, {
     character: { name: 'Оппонент', role: 'Manager' },
     scenario: { title: 'Тест', maxTurns: 10 },
-    session, replyError: false, fallbackNotice: null,
-    async onSend() { return true }, onFinish() {},
+    session, replyError: null,
+    async onSend() { return true }, onFinish() {}, onOpenAISettings() {},
   }))
 }
 
