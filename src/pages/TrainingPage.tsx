@@ -95,7 +95,10 @@ export function TrainingPage({
               confirmed={training.answerConfirmed}
               question={training.currentQuestion}
               selectedAnswer={training.selectedAnswer}
-              onSelect={training.selectAnswer}
+              onSelect={(answerIndex) => {
+                if (window.matchMedia('(max-width: 560px)').matches) training.submitAnswer(answerIndex)
+                else training.selectAnswer(answerIndex)
+              }}
             />
 
             {!training.answerConfirmed && (

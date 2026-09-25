@@ -6,7 +6,7 @@ import { localCharacterSource, localScenarioSource } from '../content/arenaSourc
 import { getCharacterPublicProfile, getDifficultyStars } from '../services/characterProfile'
 import { createBrowserOpponentService, getAIStatus, type AIStatus } from '../services/arenaOpponentGateway'
 import { createBrowserEvaluatorService } from '../services/evaluatorService'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
 import type { ArenaSession } from '../types/arena'
@@ -26,9 +26,20 @@ type ArenaPageProps = {
   aiSettingsVersion: number
 }
 
+export function scrollToMobileArenaSection(
+  target: Pick<HTMLElement, 'scrollIntoView'> | null,
+  isMobile: boolean,
+  reducedMotion: boolean,
+) {
+  if (!target || !isMobile) return
+  target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+}
+
 export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
   onOpenAISettings, aiSettingsVersion }: ArenaPageProps) {
   const [aiStatus, setAIStatus] = useState<AIStatus>('unavailable')
+  const scenarioSectionRef = useRef<HTMLElement>(null)
+  const scenarioBriefRef = useRef<HTMLDivElement>(null)
   const opponentService = useMemo(() => createBrowserOpponentService(), [])
   const evaluatorService = useMemo(() => createBrowserEvaluatorService(), [])
   useEffect(() => {
@@ -40,6 +51,22 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
     role.id, localCharacterSource, localScenarioSource, opponentService, evaluatorService, onComplete, onEvaluated,
     (character) => isBossUnlocked(character, roleProgress, roleProgress.level),
   )
+  useEffect(() => {
+    if (arena.step !== 'selection' || !arena.selectedCharacterId) return
+    scrollToMobileArenaSection(
+      scenarioSectionRef.current,
+      window.matchMedia('(max-width: 560px)').matches,
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    )
+  }, [arena.step, arena.selectedCharacterId])
+  useEffect(() => {
+    if (arena.step !== 'selection' || !arena.selectedScenarioId) return
+    scrollToMobileArenaSection(
+      scenarioBriefRef.current,
+      window.matchMedia('(max-width: 560px)').matches,
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    )
+  }, [arena.step, arena.selectedScenarioId])
   const characters = Array.from(new Map(
     arena.options?.map(({ character }) => [character.id, character]) ?? [],
   ).values())
@@ -120,7 +147,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                 </div>
 
                 {arena.selectedCharacterId && (
-                  <section className="arena-scenario-setup" aria-labelledby="arena-scenario-title">
+                  <section className="arena-scenario-setup" ref={scenarioSectionRef} aria-labelledby="arena-scenario-title">
                     <h2 id="arena-scenario-title">Выберите сценарий</h2>
                     <div className="arena-scenario-list">
                       {characterScenarios.map(({ scenario }) => (
@@ -139,7 +166,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                     </div>
 
                     {arena.selected && (
-                      <div className="arena-selected-brief">
+                      <div className="arena-selected-brief" ref={scenarioBriefRef}>
                         <h3>Перед началом</h3>
                         <p><strong>Вы — {role.name}.</strong></p>
                         <p>{arena.selected.scenario.playerBrief.situation}</p>

@@ -464,22 +464,30 @@ h1, h2, p { margin-top: 0; }
 }
 
 @media (max-width: 560px) {
+  body { min-width: 0; }
   .onboarding-page { padding: 0; }
   .onboarding-shell { min-height: 100vh; padding: 24px; border: 0; }
-  .onboarding-footer, .header-main, .role-control { align-items: flex-start; flex-direction: column; }
+  .onboarding-footer { align-items: flex-start; flex-direction: column; }
   .onboarding-footer .primary-button { width: 100%; }
   .page-container, .home-content, .placeholder-shell { padding-right: 20px; padding-left: 20px; }
   .page-intro { padding-top: 72px; }
-  .header-main { gap: 16px; }
-  .role-control { gap: 6px; padding-left: 0; border-left: 0; }
-  .player-stats { flex-wrap: wrap; gap: 14px 20px; }
-  .level-stat { width: 100%; }
-  .xp-track { flex: 1; }
+  .app-header { min-height: 0; gap: 6px; padding: 8px 12px; }
+  .header-main { width: 100%; }
+  .header-main .brand { display: none; }
+  .role-control { width: 100%; justify-content: space-between; gap: 8px; padding-left: 0; border-left: 0; }
+  .role-control .text-button, .current-role { white-space: nowrap; }
+  .current-role { font-size: .9rem; }
+  .player-stats { display: flex; width: 100%; justify-content: space-between; gap: 6px; font-size: .75rem; white-space: nowrap; }
+  .level-stat { min-width: 0; flex: 1 1 auto; gap: 5px; }
+  .xp-track { width: auto; min-width: 16px; flex: 1 1 auto; }
+  .stat-detail { flex: 0 0 auto; font-size: .72rem; }
+  .stat-item { flex: 0 0 auto; }
   .home-content { padding-top: 56px; padding-bottom: 56px; }
   .activity { padding: 24px; }
   .training-page, .training-result-page, .training-message { padding-right: 20px; padding-left: 20px; }
   .question-panel { margin-top: 34px; }
   .answer-option { grid-template-columns: 30px 1fr; padding: 14px; }
+  .check-answer-button { display: none; }
   .result-actions { flex-direction: column; }
   .result-actions button { width: 100%; }
   .arena-page { padding-right: 20px; padding-left: 20px; }

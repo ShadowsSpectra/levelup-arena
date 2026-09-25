@@ -32,6 +32,7 @@ export function useTrainingSession(
   const previousQuestionIds = useRef<string[]>([])
   const sessionLevel = useRef(level)
   const completionRecorded = useRef(false)
+  const confirmationPending = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -57,6 +58,7 @@ export function useTrainingSession(
         setResult(null)
         setAward(null)
         completionRecorded.current = false
+        confirmationPending.current = false
         setStatus(nextQuestions.length === 0 ? 'empty' : 'ready')
       } catch (error) {
         if (import.meta.env.DEV) console.error('[Training] Failed to create training.', error)
@@ -74,15 +76,21 @@ export function useTrainingSession(
   const currentQuestion = questions[currentIndex] ?? null
 
   function selectAnswer(answerIndex: number) {
-    if (!answerConfirmed) setSelectedAnswer(answerIndex)
+    if (!answerConfirmed && !confirmationPending.current) setSelectedAnswer(answerIndex)
+  }
+
+  function submitAnswer(answerIndex: number | null) {
+    if (!currentQuestion || answerIndex === null || answerConfirmed || confirmationPending.current) return
+
+    confirmationPending.current = true
+    setSelectedAnswer(answerIndex)
+    const answer = createTrainingAnswer(currentQuestion, answerIndex)
+    setAnswers((current) => [...current, answer])
+    setAnswerConfirmed(true)
   }
 
   function confirmAnswer() {
-    if (!currentQuestion || selectedAnswer === null || answerConfirmed) return
-
-    const answer = createTrainingAnswer(currentQuestion, selectedAnswer)
-    setAnswers((current) => [...current, answer])
-    setAnswerConfirmed(true)
+    submitAnswer(selectedAnswer)
   }
 
   function goNext() {
@@ -101,6 +109,7 @@ export function useTrainingSession(
     setCurrentIndex((current) => current + 1)
     setSelectedAnswer(null)
     setAnswerConfirmed(false)
+    confirmationPending.current = false
   }
 
   function restart() {
@@ -119,6 +128,7 @@ export function useTrainingSession(
     result,
     award,
     selectAnswer,
+    submitAnswer,
     confirmAnswer,
     goNext,
     restart,
