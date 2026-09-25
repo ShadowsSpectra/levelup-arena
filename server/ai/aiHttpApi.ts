@@ -154,7 +154,7 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
       if (error instanceof AIProviderError) {
         send(res, 502, {
           stage: 'provider', kind: error.kind, httpStatus: error.httpStatus,
-          error: error.message,
+          error: error.message, ...(error.diagnostics ? { diagnostics: error.diagnostics } : {}),
         })
         return
       }

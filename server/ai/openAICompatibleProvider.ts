@@ -3,12 +3,59 @@ import type { AIProvider, AIRequest } from './AIProvider'
 type Fetcher = typeof fetch
 const PROVIDER_TIMEOUT_MS = 90_000
 
+type ResponseDiagnostics = {
+  httpStatus: number
+  contentType: string | null
+  bodyLengthBytes: number | null
+  declaredContentLength: number | null
+  emptyBody: boolean | null
+  finishReason?: string
+  usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number }
+}
+
 export class AIProviderError extends Error {
   constructor(message: string, public readonly kind: 'http' | 'network' | 'timeout' | 'response',
-    public readonly httpStatus?: number) {
+    public readonly httpStatus?: number, public readonly diagnostics?: ResponseDiagnostics) {
     super(message)
     this.name = 'AIProviderError'
   }
+}
+
+function responseDiagnostics(response: Response, bodyLengthBytes: number | null, data?: unknown): ResponseDiagnostics {
+  const rawContentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase()
+  const knownContentTypes = new Set([
+    'application/json', 'application/problem+json', 'application/octet-stream',
+    'text/plain', 'text/html', 'text/event-stream',
+  ])
+  const rawContentLength = response.headers.get('content-length')
+  const declaredContentLength = rawContentLength && /^\d+$/.test(rawContentLength)
+    ? Number(rawContentLength) : null
+  const diagnostics: ResponseDiagnostics = {
+    httpStatus: response.status,
+    contentType: rawContentType ? (knownContentTypes.has(rawContentType) ? rawContentType : 'other') : null,
+    bodyLengthBytes,
+    declaredContentLength: declaredContentLength !== null && Number.isSafeInteger(declaredContentLength)
+      ? declaredContentLength : null,
+    emptyBody: bodyLengthBytes === null ? null : bodyLengthBytes === 0,
+  }
+  if (!data || typeof data !== 'object') return diagnostics
+  const envelope = data as { choices?: unknown; usage?: unknown }
+  const firstChoice = Array.isArray(envelope.choices) ? envelope.choices[0] as { finish_reason?: unknown } | undefined : undefined
+  if (firstChoice && typeof firstChoice.finish_reason === 'string' &&
+    /^(stop|length|content_filter|tool_calls|function_call)$/.test(firstChoice.finish_reason)) {
+    diagnostics.finishReason = firstChoice.finish_reason
+  }
+  if (envelope.usage && typeof envelope.usage === 'object') {
+    const usage = envelope.usage as Record<string, unknown>
+    const safeUsage: NonNullable<ResponseDiagnostics['usage']> = {}
+    for (const [source, target] of [
+      ['prompt_tokens', 'promptTokens'], ['completion_tokens', 'completionTokens'], ['total_tokens', 'totalTokens'],
+    ] as const) {
+      if (Number.isSafeInteger(usage[source]) && (usage[source] as number) >= 0) safeUsage[target] = usage[source] as number
+    }
+    if (Object.keys(safeUsage).length) diagnostics.usage = safeUsage
+  }
+  return diagnostics
 }
 
 function safeProviderText(value: string, apiKey: string): string {
@@ -120,16 +167,22 @@ export function createOpenAICompatibleProvider(getApiKey: () => string, fetcher:
         )
       }
 
+      let body: ArrayBuffer
+      try { body = await response.arrayBuffer() } catch {
+        throw new AIProviderError(`Внешний AI: HTTP ${response.status}, ответ не является JSON.`, 'response',
+          response.status, responseDiagnostics(response, null))
+      }
       let data: unknown
-      try { data = await response.json() } catch {
-        throw new AIProviderError(`Внешний AI: HTTP ${response.status}, ответ не является JSON.`, 'response', response.status)
+      try { data = JSON.parse(new TextDecoder().decode(body)) } catch {
+        throw new AIProviderError(`Внешний AI: HTTP ${response.status}, ответ не является JSON.`, 'response',
+          response.status, responseDiagnostics(response, body.byteLength))
       }
       const content = (data as { choices?: { message?: { content?: unknown } }[] } | null)
         ?.choices?.[0]?.message?.content
       if (typeof content !== 'string' || !content.trim()) {
         throw new AIProviderError(
           `Внешний AI: HTTP ${response.status}, некорректный ответ: нет текста choices[0].message.content.`,
-          'response', response.status,
+          'response', response.status, responseDiagnostics(response, body.byteLength, data),
         )
       }
       return { content: content.trim() }

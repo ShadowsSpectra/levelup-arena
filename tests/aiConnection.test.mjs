@@ -301,6 +301,74 @@ test('provider distinguishes DNS, timeout, unknown network failure and malformed
   await assert.rejects(noContent.generate(request), /choices\[0\]\.message\.content/)
 })
 
+test('malformed provider JSON reports only safe response metadata', async () => {
+  const body = `not json ${credentials.apiKey} секретный transcript`
+  const provider = createOpenAICompatibleProvider(() => credentials.apiKey, async () => new Response(body, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': '999' },
+  }))
+  const request = { model: credentials.model, apiEndpoint: credentials.baseUrl, messages: [] }
+  await assert.rejects(provider.generate(request), (error) => {
+    assert.match(error.message, /HTTP 200, ответ не является JSON/)
+    assert.deepEqual(error.diagnostics, {
+      httpStatus: 200, contentType: 'text/html', bodyLengthBytes: Buffer.byteLength(body),
+      declaredContentLength: 999, emptyBody: false,
+    })
+    assert.ok(!JSON.stringify(error.diagnostics).includes(credentials.apiKey))
+    assert.ok(!JSON.stringify(error.diagnostics).includes('transcript'))
+    return true
+  })
+
+  const empty = createOpenAICompatibleProvider(() => credentials.apiKey,
+    async () => new Response('', { status: 200, headers: { 'Content-Type': 'application/json' } }))
+  await assert.rejects(empty.generate(request), (error) => {
+    assert.equal(error.diagnostics.bodyLengthBytes, 0)
+    assert.equal(error.diagnostics.emptyBody, true)
+    assert.equal(error.diagnostics.declaredContentLength, null)
+    return true
+  })
+})
+
+test('invalid provider envelope retains safe finish reason and token usage', async () => {
+  const provider = createOpenAICompatibleProvider(() => credentials.apiKey, async () => new Response(JSON.stringify({
+    choices: [{ finish_reason: 'length', message: { content: '' } }],
+    usage: { prompt_tokens: 120, completion_tokens: 50, total_tokens: 170, secret: credentials.apiKey },
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+  await assert.rejects(provider.generate({ model: credentials.model, apiEndpoint: credentials.baseUrl, messages: [] }), (error) => {
+    assert.match(error.message, /choices\[0\]\.message\.content/)
+    assert.equal(error.diagnostics.finishReason, 'length')
+    assert.deepEqual(error.diagnostics.usage, { promptTokens: 120, completionTokens: 50, totalTokens: 170 })
+    assert.ok(!JSON.stringify(error.diagnostics).includes(credentials.apiKey))
+    return true
+  })
+})
+
+test('local AI endpoint returns response diagnostics without changing its error text', async () => {
+  const body = `invalid JSON ${credentials.apiKey}`
+  const api = createAIHttpApi({ fetcher: async () => new Response(body, {
+    status: 200, headers: { 'Content-Type': 'text/html', 'Content-Length': '1234' },
+  }) })
+  const httpServer = createHttpServer((req, res) => { void api(req, res, () => { res.statusCode = 404; res.end() }) })
+  httpServer.listen(0, '127.0.0.1')
+  await once(httpServer, 'listening')
+  try {
+    const response = await fetch(`http://127.0.0.1:${httpServer.address().port}/api/ai/check`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
+    })
+    assert.equal(response.status, 502)
+    const failure = await response.json()
+    assert.match(failure.error, /HTTP 200, ответ не является JSON/)
+    assert.deepEqual(failure.diagnostics, {
+      httpStatus: 200, contentType: 'text/html', bodyLengthBytes: Buffer.byteLength(body),
+      declaredContentLength: 1234, emptyBody: false,
+    })
+    assert.ok(!JSON.stringify(failure).includes(credentials.apiKey))
+  } finally {
+    httpServer.close()
+    await once(httpServer, 'close')
+  }
+})
+
 test('HTTP route requires configuration and never substitutes Mock on provider failure', async () => {
   let calls = 0
   const fakeProvider = async () => {

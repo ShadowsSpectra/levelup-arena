@@ -182,9 +182,6 @@ export function parseArenaEvaluation(
     id, criterion(scoreValues[id], id, playerMessages),
   ])) as ArenaEvaluation['scores']
   const values = arenaCriterionIds.map((id) => scores[id].score)
-  if (values.every((score) => score <= 10) && values.some((score) => score > 0)) {
-    throw new EvaluationValidationError('Criterion scores appear to use a 1–5 or 1–10 scale, not 0–100.')
-  }
   const overallScore = Math.round(
     values.reduce((total, score) => total + score, 0) / values.length,
   )

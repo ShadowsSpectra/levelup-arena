@@ -34,10 +34,8 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
   const [message, setMessage] = useState('')
   const [savedConfig, setSavedConfig] = useState<PublicSettings | null>(null)
   const [editingConfig, setEditingConfig] = useState(false)
-  const [replacingKey, setReplacingKey] = useState(false)
   const saveVersion = useRef(0)
   const editing = !savedConfig || editingConfig
-  const enteringKey = !savedConfig || replacingKey
 
   useEffect(() => {
     let active = true
@@ -89,7 +87,7 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
   function payload(): SettingsPayload {
     return {
       provider: settings.provider, baseUrl: settings.baseUrl, model: settings.model,
-      ...(enteringKey ? { apiKey: settings.apiKey } : {}),
+      ...(settings.apiKey.trim() ? { apiKey: settings.apiKey } : {}),
     }
   }
 
@@ -118,7 +116,6 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
       saveVersion.current += 1
       setSavedConfig(result as PublicSettings)
       setEditingConfig(false)
-      setReplacingKey(false)
       setStatus('idle')
       setMessage('Настройки сохранены для текущего запуска сервера.')
       setSettings((current) => ({ ...current, apiKey: '' }))
@@ -165,23 +162,16 @@ export function AISettingsDialog({ onClose, onSaved }: { onClose: () => void; on
           <label htmlFor="ai-base-url">Base URL</label>
           <input id="ai-base-url" type="url" required value={settings.baseUrl} readOnly={!editing || status === 'checking'}
             onChange={(event) => update('baseUrl', event.target.value)} placeholder="https://provider.example/v1" autoComplete="url" />
-          {enteringKey ? <label htmlFor="ai-api-key">API Key</label> : <span className="ai-settings-label">API Key</span>}
-          {enteringKey ? (
-            <input id="ai-api-key" type="password" required value={settings.apiKey} disabled={status === 'checking'}
-              onChange={(event) => update('apiKey', event.target.value)} autoComplete="off" />
+          {editing ? <label htmlFor="ai-api-key">API Key</label> : <span className="ai-settings-label">API Key</span>}
+          {editing ? (
+            <input id="ai-api-key" type="password" required={!savedConfig} value={settings.apiKey} disabled={status === 'checking'}
+              onChange={(event) => update('apiKey', event.target.value)}
+              placeholder={savedConfig ? 'Оставьте пустым, чтобы сохранить текущий ключ' : undefined} autoComplete="off" />
           ) : (
             <div className="ai-settings-key-saved" role="status" aria-label="API Key сохранён для текущей сессии сервера">
               <span aria-hidden="true">••••••••••••••••</span>
               <span>✓ API Key сохранён для текущей сессии сервера</span>
             </div>
-          )}
-          {savedConfig && editingConfig && !replacingKey && (
-            <button className="secondary-action-button ai-settings-replace-key" type="button" disabled={status === 'checking'} onClick={() => {
-              setSettings((current) => ({ ...current, apiKey: '' }))
-              setReplacingKey(true)
-              setStatus('idle')
-              setMessage('')
-            }}>Заменить API Key</button>
           )}
           <label htmlFor="ai-model">Model</label>
           <input id="ai-model" type="text" required value={settings.model} readOnly={!editing || status === 'checking'}

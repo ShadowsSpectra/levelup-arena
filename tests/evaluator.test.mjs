@@ -14,7 +14,7 @@ const { buildEvaluatorMessages, EVALUATOR_RULES } = await vite.ssrLoadModule('/s
 const { createAIEvaluatorService } = await vite.ssrLoadModule('/server/ai/createAIEvaluatorService.ts')
 const { getEvaluatorTranscript } = await vite.ssrLoadModule('/server/ai/evaluatorTranscript.ts')
 const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
-const { ArenaResultView } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
+const { ArenaResultView, ArenaTranscriptView } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
 const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
 const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 
@@ -119,17 +119,18 @@ test('validator requires five scored criteria and real player evidence IDs; appl
   assert.throws(() => parseArenaEvaluation(JSON.stringify(malformedFacts), context), /Invalid semantic facts/)
 })
 
-test('criterion scores use the full 0–100 scale and small-scale responses are rejected', () => {
+test('criterion scores are integers in 0–100, including legitimate low scores', () => {
   for (const invalid of [-1, 101, 50.5, '75']) {
     const result = resultFor()
     result.scores.initiative.score = invalid
     assert.throws(() => parseArenaEvaluation(JSON.stringify(result), context), /Invalid scores.initiative.score/)
   }
-  for (const smallScores of [[4, 4, 4, 4, 4], [2, 4, 6, 8, 10]]) {
-    const result = resultFor()
-    criterionIds.forEach((id, index) => { result.scores[id].score = smallScores[index] })
-    assert.throws(() => parseArenaEvaluation(JSON.stringify(result), context), /1–5 or 1–10 scale/)
-  }
+  const low = resultFor()
+  const lowScores = [0, 5, 10, 5, 10]
+  criterionIds.forEach((id, index) => { low.scores[id].score = lowScores[index] })
+  const lowEvaluation = parseArenaEvaluation(JSON.stringify(low), context)
+  assert.deepEqual(criterionIds.map((id) => lowEvaluation.scores[id].score), lowScores)
+  assert.equal(lowEvaluation.overallScore, 6)
   const fullScale = resultFor()
   const scores = [0, 25, 50, 75, 100]
   criterionIds.forEach((id, index) => { fullScale.scores[id].score = scores[index] })
@@ -222,6 +223,7 @@ test('user-facing prose normalizes role labels while Main Insight remains ground
   assert.ok(html.includes('Главный вывод'))
   assert.ok(html.includes(validated.mainInsight.insight))
   assert.ok(html.includes(`«${validated.mainInsight.evidence}»`))
+  assert.ok(html.includes('Посмотреть переговоры'))
   assert.ok(!html.includes('evidenceMessageId'))
 })
 
@@ -462,7 +464,8 @@ test('Result never renders hidden card data and exposes an explicit recoverable 
       award: { xpEarned: 50, bossDefeated: true } },
   }))
   assert.ok(success.includes('Разбор навыков'))
-  assert.ok(success.includes('Получено XP: 50'))
+  assert.ok(success.includes('Получено XP:'))
+  assert.ok(success.includes('<strong>50</strong>'))
   assert.ok(success.includes('Оппонент побеждён'))
   assert.ok(!success.includes(character.privateInformation[0]))
   assert.ok(!success.includes(scenario.hiddenData.opponentGoal))
@@ -471,7 +474,8 @@ test('Result never renders hidden card data and exposes an explicit recoverable 
     ...baseProps, evaluation: { status: 'success', result: parseArenaEvaluation(JSON.stringify(resultFor()), context),
       award: { xpEarned: 0, bossDefeated: false } },
   }))
-  assert.ok(noAgreement.includes('Получено XP: 0'))
+  assert.ok(noAgreement.includes('Получено XP:'))
+  assert.ok(noAgreement.includes('<strong>0</strong>'))
   assert.ok(noAgreement.includes('Оппонент пока не побеждён'))
 
   const failure = renderToStaticMarkup(React.createElement(ArenaResultView, {
@@ -481,6 +485,47 @@ test('Result never renders hidden card data and exposes an explicit recoverable 
   assert.ok(failure.includes('AI Settings'))
   assert.ok(failure.includes('диалог не потерян'))
   assert.ok(!failure.includes('Mock'))
+
+  const loading = renderToStaticMarkup(React.createElement(ArenaResultView, {
+    ...baseProps, evaluation: { status: 'loading' },
+  }))
+  assert.ok(loading.includes('arena-evaluation-loader'))
+  assert.ok(loading.includes('Формируем разбор переговоров'))
+})
+
+test('completed Arena transcript is available as a read-only view of the preserved session messages', () => {
+  const html = renderToStaticMarkup(React.createElement(ArenaTranscriptView, {
+    character, scenario, session, onBack() {},
+  }))
+  assert.ok(html.includes('arena-transcript-header'))
+  assert.ok(html.includes('← Вернуться к результату'))
+  assert.ok(html.includes('arena-message-opponent'))
+  assert.ok(html.includes('arena-message-player'))
+  assert.ok(html.includes(session.messages[0].text))
+  assert.ok(html.includes(session.messages[1].text))
+  assert.ok(!html.includes('<textarea'))
+  assert.ok(!html.includes('Отправить'))
+})
+
+test('Result gives each deterministic outcome its own clear visual state', () => {
+  const baseProps = { character, scenario, session, onRetryEvaluation() {}, onOpenAISettings() {}, onTryAgain() {},
+    onBackToSelection() {}, onHome() {} }
+  const cases = [
+    ['SUCCESS', 'arena-outcome-success', 'Успешное соглашение', 50, true],
+    ['BAD_AGREEMENT', 'arena-outcome-bad_agreement', 'Соглашение достигнуто, но требует пересмотра', 0, false],
+    ['NO_AGREEMENT', 'arena-outcome-no_agreement', 'Соглашение не достигнуто', 0, false],
+  ]
+  for (const [status, className, label, xpEarned, bossDefeated] of cases) {
+    const result = parseArenaEvaluation(JSON.stringify(resultFor(status)), context)
+    const html = renderToStaticMarkup(React.createElement(ArenaResultView, {
+      ...baseProps, evaluation: { status: 'success', result, award: { xpEarned, bossDefeated } },
+    }))
+    assert.ok(html.includes(className))
+    assert.ok(html.includes(label))
+    assert.ok(html.includes(`Получено XP: <strong>${xpEarned}</strong>`))
+    assert.equal((html.match(/secondary-action-button/g) ?? []).length, 1)
+    assert.ok(html.includes('result-navigation'))
+  }
 })
 
 test('failed real evaluation returns no fake result and can be retried with the same completed transcript', async () => {
