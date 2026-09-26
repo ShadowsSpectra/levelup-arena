@@ -15,6 +15,7 @@ const { createBrowserOpponentService, getAIStatus } = await vite.ssrLoadModule('
 const { NegotiationView, scrollTranscriptToLatest } =
   await vite.ssrLoadModule('/src/components/arena/NegotiationView.tsx')
 const { buildOpponentMessages, OPPONENT_RULES } = await vite.ssrLoadModule('/server/ai/opponentPrompt.ts')
+const { buildEvaluatorMessages } = await vite.ssrLoadModule('/server/ai/evaluatorPrompt.ts')
 const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
 const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 const { createArenaSession, addPlayerMessage } = await vite.ssrLoadModule('/src/services/arenaSession.ts')
@@ -66,15 +67,23 @@ test('opponent prompt contains selected cards, global rules and the complete tra
     promptCharacter.batna, promptCharacter.behavior[0], promptScenario.title, promptScenario.playerRole,
     promptScenario.playerBrief.situation, promptScenario.playerBrief.playerGoal,
     promptScenario.playerBrief.knownInformation[0], promptScenario.hiddenData.opponentGoal,
-    promptScenario.hiddenData.discoverableFacts[0].fact, promptScenario.successConditions.playerMinimumConditions[0],
+    promptScenario.hiddenData.discoverableFacts[0].fact,
     promptScenario.successConditions.opponentMinimumConditions[0],
-    promptScenario.successConditions.agreementRequirements[0], promptScenario.validAgreementPaths[0],
-    promptScenario.badAgreementExamples[0], String(promptScenario.maxTurns),
+    promptScenario.successConditions.agreementRequirements[0], String(promptScenario.maxTurns),
   ]) assert.ok(messages[0].content.includes(value), `missing prompt value: ${value}`)
   for (const rule of ['Оставайся персонажем', 'Скрытые факты раскрывай по одному',
-    'Значимая уступка должна быть заслужена', 'Не решай кейс за игрока']) {
+    'Значимая уступка должна быть заслужена']) {
     assert.ok(OPPONENT_RULES.includes(rule))
     assert.ok(messages[0].content.includes(rule))
+  }
+  for (const solutionKey of [promptScenario.successConditions.playerMinimumConditions[0],
+    promptScenario.validAgreementPaths[0], promptScenario.badAgreementExamples[0]]) {
+    assert.ok(!messages[0].content.includes(solutionKey), `Opponent received solution key: ${solutionKey}`)
+  }
+  const evaluator = buildEvaluatorMessages({ character: promptCharacter, scenario: promptScenario, session })
+  for (const solutionKey of [promptScenario.successConditions.playerMinimumConditions[0],
+    promptScenario.validAgreementPaths[0], promptScenario.badAgreementExamples[0]]) {
+    assert.ok(evaluator[1].content.includes(solutionKey), `Evaluator missing solution key: ${solutionKey}`)
   }
   assert.deepEqual(messages.slice(1), [
     { role: 'assistant', content: 'Начальная позиция' },
@@ -162,6 +171,45 @@ test('opponent role rules keep player instructions below Character and Scenario 
   assert.ok(messages[0].content.includes(promptScenario.successConditions.opponentMinimumConditions[0]))
   assert.deepEqual(messages.at(-1), { role: 'user', content: playerText })
   assert.ok(!messages[0].content.includes(playerText))
+})
+
+test('one shared rule prevents every opponent from rescuing passive play without blocking earned progress', async () => {
+  const options = (await Promise.all(['product_manager', 'project_manager', 'sales_manager'].map(
+    (role) => getArenaOptions(role, localCharacterSource, localScenarioSource),
+  ))).flat()
+  const invariant = [
+    'Граница ролей и задач — обязательна для текущего ответа',
+    'вся переговорная задача игрока принадлежат исключительно игроку',
+    'не выполняй его discovery',
+    'не формулируй его ценностное предложение',
+    'не конструируй обе стороны компромисса',
+    'внутренний контекст для твоего решения, а не готовый материал для ответа',
+    'Пассивная, пренебрежительная, бессодержательная или отвергающая реплика не является значимым прогрессом',
+    'можешь потребовать конкретную позицию без подсказки её содержания',
+    'cooperativeness означает готовность конструктивно отвечать на содержательные действия игрока',
+    'Отсутствие соглашения — нормальный возможный исход',
+  ]
+  assert.match(OPPONENT_RULES, /Значимая уступка должна быть заслужена/)
+  assert.doesNotMatch(OPPONENT_RULES, /Алексей|Ирина|Андрей|Марина|Ольга|Максим/)
+
+  for (const { character, scenario } of options) {
+    const playerText = character.id === 'olga_potential_client_01'
+      ? 'Не хотите — не переходите.'
+      : 'Это ваша задача, сами и думайте.'
+    const session = addPlayerMessage(createArenaSession(
+      scenario.id, character.id, scenario.openingMessage,
+    ), playerText, scenario.maxTurns)
+    const messages = buildOpponentMessages({ character, scenario, session })
+    for (const rule of invariant) assert.ok(messages[0].content.includes(rule))
+    assert.ok(messages[0].content.indexOf('maxTurns:') < messages[0].content.indexOf(invariant[0]))
+    assert.match(messages[0].content, /не обязана двигать стороны к соглашению/)
+    assert.doesNotMatch(messages[0].content, /Продолжи переговоры одной репликой персонажа/)
+    assert.doesNotMatch(messages[0].content, /playerMinimumConditions:|validAgreementPaths:|badAgreementExamples:/)
+    assert.equal(messages.at(-1).role, 'user')
+    assert.equal(messages.at(-1).content, playerText)
+    assert.ok(messages[0].content.includes(character.cooperativeness))
+    assert.ok(messages[0].content.includes(character.batna))
+  }
 })
 
 test('conditional agreement-closing rule reaches every Arena opponent without forcing acceptance', async () => {
