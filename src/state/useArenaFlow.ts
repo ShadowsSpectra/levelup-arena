@@ -176,7 +176,7 @@ export function useArenaFlow(
   }
 
   function finish() {
-    if (!session || isOpening || session.status === 'responding' || completionRecorded.current) return
+    if (!session || session.currentTurn === 0 || isOpening || session.status === 'responding' || completionRecorded.current) return
     completionRecorded.current = true
     const completed = endArenaSession(session)
     onComplete(completed)

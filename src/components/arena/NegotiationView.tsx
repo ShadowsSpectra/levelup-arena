@@ -28,6 +28,7 @@ export function NegotiationView({
   const atLimit = session.status === 'turn-limit'
   const responding = session.status === 'responding'
   const typing = responding || isOpening
+  const manualFinishDisabled = typing || session.currentTurn === 0
   const visibleMessages = isOpening
     ? session.messages.filter((message) => message.id !== 'opponent-opening')
     : session.messages
@@ -58,7 +59,7 @@ export function NegotiationView({
           <p>{character.name} · {character.role}</p>
         </div>
         {!atLimit && (
-          <button className="secondary-action-button" type="button" disabled={typing} onClick={onFinish}>
+          <button className="secondary-action-button" type="button" disabled={manualFinishDisabled} onClick={onFinish}>
             Завершить переговоры
           </button>
         )}

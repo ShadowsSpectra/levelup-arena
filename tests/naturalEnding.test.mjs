@@ -178,8 +178,17 @@ test('player may dismiss the hint or send another message without completing', (
 })
 
 test('manual Finish remains available and max-turn limit takes precedence', () => {
+  const zeroTurnSession = createArenaSession('scenario', 'character', 'Давайте обсудим задачу.')
+  assert.match(
+    view(zeroTurnSession),
+    /<button class="secondary-action-button" type="button" disabled="">Завершить переговоры<\/button>/,
+  )
+
   const openSession = exchange('Что вам нужно?', 'Давайте уточним условия.')
-  assert.match(view(openSession), /Завершить переговоры/)
+  assert.match(
+    view(openSession),
+    /<button class="secondary-action-button" type="button">Завершить переговоры<\/button>/,
+  )
   assert.equal(endArenaSession(openSession).status, 'completed')
 
   const atLimit = exchange(
