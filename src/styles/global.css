@@ -16,7 +16,7 @@ button:focus-visible { outline: 3px solid rgb(68 92 204 / 25%); outline-offset: 
 h1, h2, p { margin-top: 0; }
 
 .brand { display: inline-flex; align-items: center; gap: 10px; color: #172036; font-weight: 750; letter-spacing: -0.02em; }
-.brand-mark { display: grid; width: 32px; height: 32px; place-items: center; background: #445ccc; color: #fff; font-size: .95rem; }
+.brand-mark { display: block; width: 32px; height: 32px; flex: 0 0 auto; color: #445ccc; }
 .brand-name { white-space: nowrap; }
 
 .primary-button, .secondary-button { min-height: 46px; padding: 11px 18px; border: 1px solid transparent; border-radius: 7px; font-weight: 700; cursor: pointer; }
@@ -63,7 +63,8 @@ h1, h2, p { margin-top: 0; }
 .xp-track { width: 92px; height: 5px; overflow: hidden; background: #dfe2e8; }
 .xp-fill { display: block; height: 100%; background: #445ccc; }
 .stat-detail { color: #737b8a; font-size: .78rem; font-weight: 600; }
-.stat-item { white-space: nowrap; }
+.stat-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.header-stat-icon { display: block; width: 16px; height: 16px; flex: 0 0 auto; color: #445ccc; }
 
 .home-content { width: min(100%, 1120px); margin: 0 auto; padding: 82px 28px; }
 .home-intro { max-width: 700px; margin-bottom: 54px; }

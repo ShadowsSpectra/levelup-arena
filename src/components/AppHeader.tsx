@@ -2,6 +2,7 @@ import { energyRules } from '../config/progression'
 import type { Role } from '../config/roles'
 import type { getRoleProgress } from '../services/progression'
 import { Brand } from './Brand'
+import { EnergyIcon, StreakIcon } from './HeaderIcons'
 
 type AppHeaderProps = {
   role: Role
@@ -42,10 +43,10 @@ export function AppHeader({ role, roleProgress, energy, streak, onChangeRole }: 
           </span>
         </div>
         <span className="stat-item" title="Energy">
-          ⚡ {energy}/{energyRules.maximum}
+          <EnergyIcon /> {energy}/{energyRules.maximum}
         </span>
         <span className="stat-item" title="Streak">
-          🔥 {streak}
+          <StreakIcon /> {streak}
         </span>
       </div>
     </header>
