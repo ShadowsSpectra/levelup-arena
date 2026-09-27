@@ -184,7 +184,13 @@ test('manual Finish remains available and max-turn limit takes precedence', () =
     /<button class="secondary-action-button" type="button" disabled="">Завершить переговоры<\/button>/,
   )
 
-  const openSession = exchange('Что вам нужно?', 'Давайте уточним условия.')
+  const pendingReply = addPlayerMessage(zeroTurnSession, 'Что вам нужно?', 10)
+  assert.match(
+    view(pendingReply),
+    /<button class="secondary-action-button" type="button" disabled="">Завершить переговоры<\/button>/,
+  )
+
+  const openSession = addOpponentReply(pendingReply, 'Давайте уточним условия.', 10)
   assert.match(
     view(openSession),
     /<button class="secondary-action-button" type="button">Завершить переговоры<\/button>/,

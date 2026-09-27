@@ -357,6 +357,13 @@ h1, h2, p { margin-top: 0; }
   background: #f3f4f7;
 }
 
+.arena-dialogue-heading .secondary-action-button:disabled,
+.arena-dialogue-heading .secondary-action-button:disabled:hover {
+  opacity: .5;
+  background: #fff;
+  cursor: not-allowed;
+}
+
 .arena-page { width: min(100%, 960px); margin: 0 auto; padding: 40px 28px 80px; }
 .arena-page > .back-button { margin: 0 0 48px; }
 .arena-page-heading { max-width: 720px; margin-bottom: 36px; }
@@ -485,6 +492,15 @@ h1, h2, p { margin-top: 0; }
 .ai-settings-form label, .ai-settings-label { margin-top: 8px; font-weight: 700; }
 .ai-settings-form input, .ai-settings-form select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #cbd0da; border-radius: 7px; background: #fff; color: #172036; font: inherit; }
 .ai-settings-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.ai-settings-actions > button {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1 1 0;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
 .ai-settings-status { margin: 10px 0 0; color: #465063; }
 .ai-settings-status.is-connected { color: #285c46; }
 .ai-settings-status.is-error { color: #a43d3d; }
@@ -544,6 +560,13 @@ h1, h2, p { margin-top: 0; }
   .arena-message { max-width: 100%; }
   .arena-composer .primary-button { align-self: stretch; }
   .arena-review-columns { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .ai-settings-actions > button {
+    width: 100%;
+    flex-basis: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
