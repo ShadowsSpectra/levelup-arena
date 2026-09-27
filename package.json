@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --configLoader runner",
-    "build": "tsc -b && vite build --configLoader runner",
+    "build": "tsc -b && vite build --configLoader runner && vite build --config vite.server.config.ts --configLoader runner",
+    "start": "node --env-file-if-exists=.env server/index.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "node --test --test-concurrency=1 tests/*.test.mjs",
     "preview": "vite preview --configLoader runner"
