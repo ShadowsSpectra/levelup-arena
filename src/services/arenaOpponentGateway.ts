@@ -1,4 +1,5 @@
 import type { OpponentService } from './opponentService'
+import { createArenaAIRequest } from './arenaAIRequest'
 
 export type AIStatus = 'real' | 'unconfigured' | 'unavailable'
 
@@ -21,7 +22,7 @@ export function createBrowserOpponentService(): OpponentService {
         response = await fetch('/api/ai/opponent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(context),
+          body: JSON.stringify(createArenaAIRequest(context)),
         })
       } catch {
         throw new Error('Локальный AI-сервер недоступен. Проверьте его запуск и повторите отправку.')

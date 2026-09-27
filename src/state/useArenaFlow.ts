@@ -7,7 +7,7 @@ import type { EvaluatorService } from '../services/evaluatorService'
 import type { OpponentService } from '../services/opponentService'
 import { sanitizeOpponentReply } from '../services/opponentReply'
 import type { ArenaSession } from '../types/arena'
-import type { Character } from '../types/arena'
+import type { PublicCharacter } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { ArenaAward } from '../services/progression'
 
@@ -41,7 +41,7 @@ export function useArenaFlow(
   evaluatorService: EvaluatorService,
   onComplete: (session: ArenaSession) => void,
   onEvaluated: (session: ArenaSession, result: ArenaEvaluation) => ArenaAward,
-  isCharacterUnlocked: (character: Character) => boolean,
+  isCharacterUnlocked: (character: PublicCharacter) => boolean,
 ) {
   const [options, setOptions] = useState<ArenaOption[] | null>(null)
   const [loadError, setLoadError] = useState(false)

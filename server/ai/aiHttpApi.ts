@@ -1,4 +1,3 @@
-import type { ArenaSession, Character, Scenario } from '../../src/types/arena'
 import { createAIOpponentService } from './createAIOpponentService'
 import { createAIEvaluatorService } from './createAIEvaluatorService'
 import { createAISettingsStore, validateAISettings, type AISettings } from './aiSettings'
@@ -6,8 +5,9 @@ import { EvaluationValidationError, parseArenaEvaluation } from './evaluatorResu
 import { buildEvaluatorMessages } from './evaluatorPrompt'
 import { AIProviderError, createOpenAICompatibleProvider } from './openAICompatibleProvider'
 import { buildOpponentMessages } from './opponentPrompt'
+import { getPublicArenaContent, resolveFullArenaCards } from '../content/arenaSources'
+import { resolveArenaAIRequest } from './arenaRequest'
 
-type ReplyContext = { character: Character; scenario: Scenario; session: ArenaSession }
 type Next = (error?: unknown) => void
 type RequestLike = {
   url?: string
@@ -33,8 +33,12 @@ async function readJson(req: RequestLike): Promise<unknown> {
   try { return JSON.parse(body) } catch { throw new Error('Некорректные данные запроса.') }
 }
 
-export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
+export function createAIHttpApi(options: {
+  fetcher?: typeof fetch
+  resolveCards?: typeof resolveFullArenaCards
+} = {}) {
   const settings = createAISettingsStore()
+  const resolveCards = options.resolveCards ?? resolveFullArenaCards
 
   async function check(candidate: AISettings) {
     const provider = createOpenAICompatibleProvider(() => candidate.apiKey, options.fetcher)
@@ -58,7 +62,9 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
     }
 
     try {
-      if (path === '/api/ai/settings' && req.method === 'GET') {
+      if (path === '/api/ai/arena-content' && req.method === 'GET') {
+        send(res, 200, getPublicArenaContent())
+      } else if (path === '/api/ai/settings' && req.method === 'GET') {
         send(res, 200, settings.getPublic())
       } else if (path === '/api/ai/models-check' && req.method === 'GET') {
         const configured = settings.get()
@@ -86,13 +92,7 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
         settings.save(await readJson(req))
         send(res, 200, settings.getPublic())
       } else if (path === '/api/ai/evaluate' && req.method === 'POST') {
-        const context = await readJson(req) as ReplyContext
-        if (!context?.character?.name || !context?.scenario?.title ||
-          !Array.isArray(context?.session?.messages) || context.session.status !== 'completed' ||
-          context.session.characterId !== context.character.id ||
-          context.session.scenarioId !== context.scenario.id) {
-          throw new Error('Для оценки нужен корректный завершённый transcript.')
-        }
+        const context = resolveArenaAIRequest(await readJson(req), 'evaluator', resolveCards)
         const configured = settings.get()
         if (!configured) {
           send(res, 409, { error: 'AI не настроен. Диалог сохранён — настройте AI и повторите оценку.' })
@@ -124,11 +124,7 @@ export function createAIHttpApi(options: { fetcher?: typeof fetch } = {}) {
           throw error
         }
       } else if (path === '/api/ai/opponent' && req.method === 'POST') {
-        const context = await readJson(req) as ReplyContext
-        if (!context?.character?.name || !context?.scenario?.title ||
-          !Array.isArray(context?.session?.messages) || !Number.isInteger(context.session.currentTurn)) {
-          throw new Error('Некорректный контекст переговоров.')
-        }
+        const context = resolveArenaAIRequest(await readJson(req), 'opponent', resolveCards)
         const configured = settings.get()
         if (!configured) {
           send(res, 409, { error: 'AI не настроен. Откройте AI Settings и повторите отправку.' })

@@ -1,9 +1,10 @@
-import type { ArenaSession, Character, Scenario } from '../types/arena'
+import type { ArenaSession, PublicCharacter, PublicScenario } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
+import { createArenaAIRequest } from './arenaAIRequest'
 
 export type EvaluatorContext = {
-  character: Character
-  scenario: Scenario
+  character: PublicCharacter
+  scenario: PublicScenario
   session: ArenaSession
 }
 
@@ -21,7 +22,7 @@ export function createBrowserEvaluatorService(): EvaluatorService {
         response = await fetch('/api/ai/evaluate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(context),
+          body: JSON.stringify(createArenaAIRequest(context)),
         })
       } catch {
         throw new Error('Локальный AI-сервер недоступен. Диалог сохранён — попробуйте оценить его позже.')

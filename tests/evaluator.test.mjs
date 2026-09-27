@@ -13,9 +13,10 @@ const { parseArenaEvaluation } = await vite.ssrLoadModule('/server/ai/evaluatorR
 const { buildEvaluatorMessages, EVALUATOR_RULES } = await vite.ssrLoadModule('/server/ai/evaluatorPrompt.ts')
 const { createAIEvaluatorService } = await vite.ssrLoadModule('/server/ai/createAIEvaluatorService.ts')
 const { getEvaluatorTranscript } = await vite.ssrLoadModule('/server/ai/evaluatorTranscript.ts')
-const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
+const { createAIHttpApi: createTestAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
+const { createArenaAIRequest } = await vite.ssrLoadModule('/src/services/arenaAIRequest.ts')
 const { ArenaResultView, ArenaTranscriptView, buildArenaShareText } = await vite.ssrLoadModule('/src/components/arena/ArenaResultView.tsx')
-const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
+const { fullCharacterSource: localCharacterSource, fullScenarioSource: localScenarioSource } = await vite.ssrLoadModule('/server/content/arenaSources.ts')
 const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 
 const character = {
@@ -74,6 +75,14 @@ function resultFor(type = 'SUCCESS') {
 }
 
 const context = { character, scenario, session }
+
+function createAIHttpApi(options = {}) {
+  return createTestAIHttpApi({ ...options, resolveCards(characterId, scenarioId) {
+    assert.equal(characterId, character.id)
+    assert.equal(scenarioId, scenario.id)
+    return { character, scenario }
+  } })
+}
 
 test('application derives all three outcomes and bossDefeated from semantic facts', () => {
   for (const status of ['SUCCESS', 'NO_AGREEMENT', 'BAD_AGREEMENT']) {
@@ -559,18 +568,24 @@ test('failed real evaluation returns no fake result and can be retried with the 
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
   const snapshot = structuredClone(context)
+  const request = createArenaAIRequest({ ...context, session: {
+    ...session, id: 'evaluation-retry', messages: [...session.messages,
+      { id: 'o3', speaker: 'opponent', text: 'Согласен на предложенный план.' },
+    ],
+  } })
+  const requestSnapshot = structuredClone(request)
   try {
     assert.equal((await post('/api/ai/settings', {
       provider: 'openai-compatible', baseUrl: 'https://provider.test/v1', apiKey: 'not-a-real-key', model: 'test',
     })).status, 200)
-    const failed = await post('/api/ai/evaluate', context)
+    const failed = await post('/api/ai/evaluate', request)
     assert.equal(failed.status, 502)
     const failedBody = await failed.json()
     assert.equal(failedBody.stage, 'evaluator-validation')
     assert.ok(!('evaluation' in failedBody))
     assert.deepEqual(context, snapshot)
 
-    const retried = await post('/api/ai/evaluate', context)
+    const retried = await post('/api/ai/evaluate', request)
     assert.equal(retried.status, 200)
     assert.equal((await retried.json()).evaluation.overallScore, 60)
     assert.equal(evaluationCalls, 2)
@@ -580,6 +595,7 @@ test('failed real evaluation returns no fake result and can be retried with the 
     assert.ok(providerRequests[1].messages[1].content.includes(character.privateInformation[0]))
     assert.equal(context.session.status, 'completed')
     assert.deepEqual(context, snapshot)
+    assert.deepEqual(request, requestSnapshot)
   } finally {
     httpServer.close()
     await once(httpServer, 'close')

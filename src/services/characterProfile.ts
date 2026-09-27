@@ -1,4 +1,4 @@
-import type { Character } from '../types/arena'
+import type { PublicCharacter } from '../types/arena'
 
 const styleLabels: Record<string, string> = {
   'neutral-professional': 'Спокойный деловой стиль',
@@ -12,7 +12,7 @@ const styleLabels: Record<string, string> = {
 
 const pressureLabels = { low: 'низкое', medium: 'умеренное', high: 'высокое' }
 
-export function getCharacterPublicProfile(character: Character) {
+export function getCharacterPublicProfile(character: PublicCharacter) {
   return `${styleLabels[character.communicationStyle] ?? character.communicationStyle}. Давление: ${pressureLabels[character.pressure]}.`
 }
 

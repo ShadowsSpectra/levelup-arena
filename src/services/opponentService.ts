@@ -1,9 +1,9 @@
-import type { ArenaSession, Character, Scenario } from '../types/arena'
+import type { ArenaSession, PublicCharacter, PublicScenario } from '../types/arena'
 
 export interface OpponentService {
   reply(context: {
-    character: Character
-    scenario: Scenario
+    character: PublicCharacter
+    scenario: PublicScenario
     session: ArenaSession
   }): Promise<string>
 }

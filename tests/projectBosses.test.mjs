@@ -5,7 +5,7 @@ import { createServer } from 'vite'
 const server = await createServer({ configLoader: 'runner', server: { middlewareMode: true } })
 after(async () => { await server.close() })
 
-const { localCharacterSource, localScenarioSource } = await server.ssrLoadModule('/src/content/arenaSources.ts')
+const { fullCharacterSource: localCharacterSource, fullScenarioSource: localScenarioSource } = await server.ssrLoadModule('/server/content/arenaSources.ts')
 const { getArenaOptions } = await server.ssrLoadModule('/src/services/arenaCatalog.ts')
 const { getCharacterPublicProfile } = await server.ssrLoadModule('/src/services/characterProfile.ts')
 const { createArenaSession, endArenaSession } = await server.ssrLoadModule('/src/services/arenaSession.ts')

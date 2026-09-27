@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getRoleById } from '../../config/roles'
 import type { ArenaEvaluationState } from '../../state/useArenaFlow'
-import type { ArenaSession, Character, Scenario } from '../../types/arena'
+import type { ArenaSession, PublicCharacter, PublicScenario } from '../../types/arena'
 import { arenaCriterionIds, type ArenaCriterionId, type ArenaEvaluation, type ArenaOutcomeType } from '../../types/arenaEvaluation'
 
 const criterionLabels: Record<ArenaCriterionId, string> = {
@@ -33,8 +33,8 @@ export function buildArenaShareText(roleName: string, characterName: string, eva
 }
 
 type ArenaResultViewProps = {
-  character: Character
-  scenario: Scenario
+  character: PublicCharacter
+  scenario: PublicScenario
   session: ArenaSession
   evaluation: ArenaEvaluationState
   onRetryEvaluation: () => void

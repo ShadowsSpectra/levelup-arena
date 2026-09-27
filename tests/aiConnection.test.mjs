@@ -10,13 +10,14 @@ after(async () => { await vite.close() })
 
 const { createOpenAICompatibleProvider } = await vite.ssrLoadModule('/server/ai/openAICompatibleProvider.ts')
 const { validateAISettings, createAISettingsStore } = await vite.ssrLoadModule('/server/ai/aiSettings.ts')
-const { createAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
+const { createAIHttpApi: createTestAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
 const { createBrowserOpponentService, getAIStatus } = await vite.ssrLoadModule('/src/services/arenaOpponentGateway.ts')
+const { createArenaAIRequest } = await vite.ssrLoadModule('/src/services/arenaAIRequest.ts')
 const { NegotiationView, scrollTranscriptToLatest } =
   await vite.ssrLoadModule('/src/components/arena/NegotiationView.tsx')
 const { buildOpponentMessages, OPPONENT_RULES } = await vite.ssrLoadModule('/server/ai/opponentPrompt.ts')
 const { buildEvaluatorMessages } = await vite.ssrLoadModule('/server/ai/evaluatorPrompt.ts')
-const { localCharacterSource, localScenarioSource } = await vite.ssrLoadModule('/src/content/arenaSources.ts')
+const { fullCharacterSource: localCharacterSource, fullScenarioSource: localScenarioSource } = await vite.ssrLoadModule('/server/content/arenaSources.ts')
 const { getArenaOptions } = await vite.ssrLoadModule('/src/services/arenaCatalog.ts')
 const { createArenaSession, addPlayerMessage } = await vite.ssrLoadModule('/src/services/arenaSession.ts')
 const { OPENING_TYPING_MS, MIN_OPPONENT_TYPING_MS, remainingOpponentTypingMs } =
@@ -50,6 +51,23 @@ const promptScenario = {
   successConditions: { playerMinimumConditions: ['сохранить результат'],
     opponentMinimumConditions: ['снизить риск'], agreementRequirements: ['зафиксировать план'] },
   validAgreementPaths: ['поэтапный запуск'], badAgreementExamples: ['игнорировать риск'],
+}
+
+const { resolveFullArenaCards } = await vite.ssrLoadModule('/server/content/arenaSources.ts')
+function createAIHttpApi(options = {}) {
+  return createTestAIHttpApi({ ...options, resolveCards(characterId, scenarioId) {
+    if (characterId === promptCharacter.id && scenarioId === promptScenario.id) {
+      return { character: promptCharacter, scenario: promptScenario }
+    }
+    return resolveFullArenaCards(characterId, scenarioId)
+  } })
+}
+
+function opponentRequest(text = 'Вопрос') {
+  return createArenaAIRequest({ character: promptCharacter, scenario: promptScenario,
+    session: addPlayerMessage(createArenaSession(promptScenario.id, promptCharacter.id,
+      promptScenario.openingMessage), text, promptScenario.maxTurns),
+  })
 }
 
 test('opponent prompt contains selected cards, global rules and the complete transcript', () => {
@@ -129,7 +147,7 @@ test('Olga Sales request sends only her cards and fresh transcript to the provid
   })
   try {
     assert.equal((await post('/api/ai/settings', credentials)).status, 200)
-    const response = await post('/api/ai/opponent', { character, scenario, session })
+    const response = await post('/api/ai/opponent', createArenaAIRequest({ character, scenario, session }))
     assert.deepEqual(await response.json(), { reply: 'Ответ Ольги', mode: 'real' })
     assert.equal(providerRequest.model, credentials.model)
     assert.deepEqual(providerRequest.messages.map(({ role }) => role), ['system', 'assistant', 'user'])
@@ -445,13 +463,7 @@ test('HTTP route requires configuration and never substitutes Mock on provider f
     assert.equal(publicSettings.model, credentials.model)
     assert.ok(!JSON.stringify(publicSettings).includes(credentials.apiKey))
 
-    const context = {
-      character: promptCharacter,
-      scenario: promptScenario,
-      session: { currentTurn: 1, messages: [
-        { speaker: 'opponent', text: 'Начало' }, { speaker: 'player', text: 'Предложение' },
-      ] },
-    }
+    const context = opponentRequest('Предложение')
     const missingConfigApi = createAIHttpApi({ fetcher: fakeProvider })
     const missingServer = createHttpServer((req, res) => { void missingConfigApi(req, res, () => { res.statusCode = 404; res.end() }) })
     missingServer.listen(0, '127.0.0.1')
@@ -579,8 +591,7 @@ test('a slow real response stays pending and does not become Mock before complet
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
     })
     assert.equal(saved.status, 200)
-    const context = { character: promptCharacter, scenario: promptScenario,
-      session: { currentTurn: 1, messages: [{ speaker: 'player', text: 'Вопрос' }] } }
+    const context = opponentRequest()
     let settled = false
     const pending = fetch(`${base}/api/ai/opponent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(context),
@@ -609,8 +620,7 @@ test('a genuine provider timeout returns an error and no fake opponent reply', a
     })
     const response = await fetch(`${base}/api/ai/opponent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ character: promptCharacter, scenario: promptScenario,
-        session: { currentTurn: 1, messages: [{ speaker: 'player', text: 'Вопрос' }] } }),
+      body: JSON.stringify(opponentRequest()),
     })
     const result = await response.json()
     assert.equal(response.status, 502)
@@ -705,7 +715,9 @@ test('local check endpoint identifies provider-stage errors without returning cr
 test('browser opponent gateway accepts only Real AI and leaves failures retryable', async () => {
   const originalFetch = globalThis.fetch
   const service = createBrowserOpponentService()
-  const context = { session: { currentTurn: 1 } }
+  const context = { character: promptCharacter, scenario: promptScenario,
+    session: addPlayerMessage(createArenaSession(promptScenario.id, promptCharacter.id,
+      promptScenario.openingMessage), 'Вопрос', promptScenario.maxTurns) }
   try {
     globalThis.fetch = async () => new Response(JSON.stringify({ reply: 'Ответ модели', mode: 'real' }), { status: 200 })
     assert.equal(await service.reply(context), 'Ответ модели')

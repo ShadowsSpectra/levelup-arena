@@ -1,6 +1,6 @@
 import { arenaRewards, energyRules, levelThresholds } from '../config/progression'
 import { roles, type RoleId } from '../config/roles'
-import type { ArenaSession, Character } from '../types/arena'
+import type { ArenaSession, PublicCharacter } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
@@ -109,7 +109,7 @@ export function applyArenaCompletion(
   return registerCompletedActivity(state, completedAt)
 }
 
-export function isBossUnlocked(character: Character, roleProgress: RoleProgress, level: number) {
+export function isBossUnlocked(character: PublicCharacter, roleProgress: RoleProgress, level: number) {
   const requirements = character.unlockRequirements
   return (!requirements?.minLevel || level >= requirements.minLevel) &&
     (!requirements?.previousBossId || roleProgress.bosses[requirements.previousBossId]?.defeated === true)

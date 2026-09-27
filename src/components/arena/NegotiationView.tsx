@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { getNaturalEndingSuggestion } from '../../services/naturalEnding'
-import type { ArenaSession, Character, Scenario } from '../../types/arena'
+import type { ArenaSession, PublicCharacter, PublicScenario } from '../../types/arena'
 
 type NegotiationViewProps = {
-  character: Character
-  scenario: Scenario
+  character: PublicCharacter
+  scenario: PublicScenario
   session: ArenaSession
   isOpening?: boolean
   replyError: string | null

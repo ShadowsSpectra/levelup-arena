@@ -1,8 +1,8 @@
 import type { RoleId } from '../config/roles'
 import type { CharacterSource, ScenarioSource } from '../content/arenaSources'
-import type { Character, Scenario } from '../types/arena'
+import type { PublicCharacter, PublicScenario } from '../types/arena'
 
-export type ArenaOption = { character: Character; scenario: Scenario }
+export type ArenaOption = { character: PublicCharacter; scenario: PublicScenario }
 
 export async function getArenaOptions(
   roleId: RoleId,

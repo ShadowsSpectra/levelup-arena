@@ -49,6 +49,20 @@ export type Scenario = {
   badAgreementExamples: string[]
 }
 
+// Only this allowlisted data is required by Arena presentation and local unlocks.
+export type PublicCharacter = Pick<Character,
+  'id' | 'name' | 'role' | 'difficulty' | 'unlockRequirements' | 'communicationStyle' | 'pressure'
+>
+
+export type PublicScenario = Pick<Scenario,
+  'id' | 'title' | 'playerRole' | 'category' | 'maxTurns' | 'openingMessage' | 'characterId' | 'playerBrief'
+>
+
+export type PublicArenaContent = {
+  characters: PublicCharacter[]
+  scenarios: PublicScenario[]
+}
+
 export type ArenaMessage = {
   id: string
   speaker: 'player' | 'opponent'
