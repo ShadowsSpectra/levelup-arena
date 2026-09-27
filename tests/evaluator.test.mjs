@@ -77,7 +77,10 @@ function resultFor(type = 'SUCCESS') {
 const context = { character, scenario, session }
 
 function createAIHttpApi(options = {}) {
-  return createTestAIHttpApi({ ...options, resolveCards(characterId, scenarioId) {
+  return createTestAIHttpApi({ env: {
+    AI_PROVIDER: 'openai-compatible', AI_BASE_URL: 'https://provider.test/v1',
+    AI_API_KEY: 'not-a-real-key', AI_MODEL: 'test', AI_BYOK_ALLOWED_BASE_URLS: 'https://provider.test/v1',
+  }, production: true, ...options, resolveCards(characterId, scenarioId) {
     assert.equal(characterId, character.id)
     assert.equal(scenarioId, scenario.id)
     return { character, scenario }
@@ -577,7 +580,7 @@ test('failed real evaluation returns no fake result and can be retried with the 
   try {
     assert.equal((await post('/api/ai/settings', {
       provider: 'openai-compatible', baseUrl: 'https://provider.test/v1', apiKey: 'not-a-real-key', model: 'test',
-    })).status, 200)
+    })).status, 405)
     const failed = await post('/api/ai/evaluate', request)
     assert.equal(failed.status, 502)
     const failedBody = await failed.json()

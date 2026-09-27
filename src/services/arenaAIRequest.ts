@@ -1,11 +1,14 @@
 import type { ArenaSession, PublicCharacter, PublicScenario } from '../types/arena'
 import type { RoleId } from '../config/roles'
+import type { AISettings } from '../types/aiSettings'
+import { aiSettingsSession } from './aiSettingsSession'
 
 export type ArenaAIRequest = {
   characterId: string
   scenarioId: string
   playerRole: RoleId
   session: Pick<ArenaSession, 'id' | 'currentTurn' | 'status' | 'messages'>
+  ai?: AISettings
 }
 
 // Explicit projection: even extra runtime properties never reach the AI boundary.
@@ -14,7 +17,9 @@ export function createArenaAIRequest(context: {
   scenario: PublicScenario
   session: ArenaSession
 }): ArenaAIRequest {
+  const ai = aiSettingsSession.get()
   return {
+    ...(ai ? { ai } : {}),
     characterId: context.character.id,
     scenarioId: context.scenario.id,
     playerRole: context.scenario.playerRole,

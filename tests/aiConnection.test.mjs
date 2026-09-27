@@ -9,7 +9,8 @@ const vite = await createServer({ configLoader: 'runner', server: { middlewareMo
 after(async () => { await vite.close() })
 
 const { createOpenAICompatibleProvider } = await vite.ssrLoadModule('/server/ai/openAICompatibleProvider.ts')
-const { validateAISettings, createAISettingsStore } = await vite.ssrLoadModule('/server/ai/aiSettings.ts')
+const { validateAISettings: validateSettings } = await vite.ssrLoadModule('/server/ai/aiSettings.ts')
+const { createAISettingsSession, aiSettingsSession } = await vite.ssrLoadModule('/src/services/aiSettingsSession.ts')
 const { createAIHttpApi: createTestAIHttpApi } = await vite.ssrLoadModule('/server/ai/aiHttpApi.ts')
 const { createBrowserOpponentService, getAIStatus } = await vite.ssrLoadModule('/src/services/arenaOpponentGateway.ts')
 const { createArenaAIRequest } = await vite.ssrLoadModule('/src/services/arenaAIRequest.ts')
@@ -30,6 +31,15 @@ const credentials = {
   apiKey: 'test-secret-not-real',
   model: 'test-model',
 }
+
+const testEnv = {
+  AI_PROVIDER: credentials.provider, AI_BASE_URL: credentials.baseUrl,
+  AI_API_KEY: credentials.apiKey, AI_MODEL: credentials.model,
+  AI_BYOK_ALLOWED_BASE_URLS: 'https://provider.example/v1,https://second.example/v1',
+}
+const validateAISettings = (input) => validateSettings(input, {
+  allowLocalhost: true, allowedBaseUrls: ['https://provider.example/v1', 'https://second.example/v1'],
+})
 
 const promptCharacter = {
   id: 'character_generic', name: 'Мария', role: 'Operations Lead', difficulty: 2,
@@ -55,7 +65,7 @@ const promptScenario = {
 
 const { resolveFullArenaCards } = await vite.ssrLoadModule('/server/content/arenaSources.ts')
 function createAIHttpApi(options = {}) {
-  return createTestAIHttpApi({ ...options, resolveCards(characterId, scenarioId) {
+  return createTestAIHttpApi({ env: testEnv, production: true, ...options, resolveCards(characterId, scenarioId) {
     if (characterId === promptCharacter.id && scenarioId === promptScenario.id) {
       return { character: promptCharacter, scenario: promptScenario }
     }
@@ -146,7 +156,7 @@ test('Olga Sales request sends only her cards and fresh transcript to the provid
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
   try {
-    assert.equal((await post('/api/ai/settings', credentials)).status, 200)
+    assert.equal((await post('/api/ai/settings', credentials)).status, 405)
     const response = await post('/api/ai/opponent', createArenaAIRequest({ character, scenario, session }))
     assert.deepEqual(await response.json(), { reply: 'Ответ Ольги', mode: 'real' })
     assert.equal(providerRequest.model, credentials.model)
@@ -270,24 +280,24 @@ test('settings validation keeps keys out of public URLs and allows local HTTP on
   assert.throws(() => validateAISettings({ ...credentials, baseUrl: 'https://user:pass@provider.example/v1' }), /не должен/)
 })
 
-test('public settings confirm a saved key without returning it and reset with the server process', () => {
-  const store = createAISettingsStore()
-  assert.deepEqual(store.getPublic(), { configured: false })
-  store.save(credentials)
+test('tab-memory metadata confirms a key without rendering it; a new tab has no BYOK', () => {
+  const store = createAISettingsSession()
+  assert.equal(store.getPublic(), null)
+  store.save({ ...credentials, baseUrl: 'https://provider.example/v1' })
   assert.deepEqual(store.getPublic(), {
     configured: true, provider: credentials.provider,
     baseUrl: 'https://provider.example/v1', model: credentials.model,
   })
   assert.ok(!JSON.stringify(store.getPublic()).includes(credentials.apiKey))
-  assert.deepEqual(createAISettingsStore().getPublic(), { configured: false })
+  assert.equal(createAISettingsSession().getPublic(), null)
 })
 
-test('model and Base URL edits reuse the server-side key; only an explicit replacement changes it', () => {
-  const store = createAISettingsStore()
+test('model and Base URL edits reuse only the same tab own key; an explicit replacement changes it', () => {
+  const store = createAISettingsSession()
   const withoutKey = { provider: credentials.provider, baseUrl: 'https://second.example/v1', model: 'second-model' }
   assert.throws(() => store.save(withoutKey), /API Key/)
   store.save(credentials)
-  store.save(withoutKey)
+  store.save(store.prepare({ ...withoutKey, apiKey: '' }))
   assert.equal(store.get().apiKey, credentials.apiKey)
   assert.equal(store.getPublic().model, 'second-model')
   assert.equal(store.getPublic().baseUrl, 'https://second.example/v1')
@@ -419,7 +429,7 @@ test('local AI endpoint returns response diagnostics without changing its error 
   await once(httpServer, 'listening')
   try {
     const response = await fetch(`http://127.0.0.1:${httpServer.address().port}/api/ai/check`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ai: credentials }),
     })
     assert.equal(response.status, 502)
     const failure = await response.json()
@@ -452,19 +462,19 @@ test('HTTP route requires configuration and never substitutes Mock on provider f
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
   try {
-    const checked = await post('/api/ai/check', credentials)
+    const checked = await post('/api/ai/check', { ai: credentials })
     assert.equal(checked.status, 200)
     assert.deepEqual(await checked.json(), { connected: true })
-    assert.deepEqual(await (await fetch(`${base}/api/ai/settings`)).json(), { configured: false })
+    assert.equal((await (await fetch(`${base}/api/ai/settings`)).json()).configured, true)
     const saved = await post('/api/ai/settings', credentials)
-    assert.equal(saved.status, 200)
-    const publicSettings = await saved.json()
+    assert.equal(saved.status, 405)
+    const publicSettings = await (await fetch(`${base}/api/ai/settings`)).json()
     assert.equal(publicSettings.configured, true)
     assert.equal(publicSettings.model, credentials.model)
     assert.ok(!JSON.stringify(publicSettings).includes(credentials.apiKey))
 
     const context = opponentRequest('Предложение')
-    const missingConfigApi = createAIHttpApi({ fetcher: fakeProvider })
+    const missingConfigApi = createAIHttpApi({ fetcher: fakeProvider, env: {} })
     const missingServer = createHttpServer((req, res) => { void missingConfigApi(req, res, () => { res.statusCode = 404; res.end() }) })
     missingServer.listen(0, '127.0.0.1')
     await once(missingServer, 'listening')
@@ -494,7 +504,7 @@ test('HTTP route requires configuration and never substitutes Mock on provider f
   }
 })
 
-test('local check and save reuse a stored key without returning it', async () => {
+test('stateless check requires its own key, and server-wide saving is disabled', async () => {
   const authHeaders = []
   const api = createAIHttpApi({ fetcher: async (_url, options) => {
     authHeaders.push(options.headers.Authorization)
@@ -508,12 +518,13 @@ test('local check and save reuse a stored key without returning it', async () =>
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
   try {
-    assert.equal((await post('/api/ai/settings', credentials)).status, 200)
+    assert.equal((await post('/api/ai/settings', credentials)).status, 405)
     const edited = { provider: credentials.provider, baseUrl: 'https://second.example/v1', model: 'second-model' }
-    assert.equal((await post('/api/ai/check', edited)).status, 200)
-    const saved = await (await post('/api/ai/settings', edited)).json()
-    assert.equal(saved.model, 'second-model')
-    assert.ok(!JSON.stringify(saved).includes(credentials.apiKey))
+    assert.equal((await post('/api/ai/check', { ai: edited })).status, 400)
+    assert.equal((await post('/api/ai/check', { ai: { ...edited, apiKey: credentials.apiKey } })).status, 200)
+    const unchanged = await (await fetch(`http://127.0.0.1:${address.port}/api/ai/settings`)).json()
+    assert.equal(unchanged.model, credentials.model)
+    assert.ok(!JSON.stringify(unchanged).includes(credentials.apiKey))
     assert.deepEqual(authHeaders, [`Bearer ${credentials.apiKey}`])
   } finally {
     httpServer.close()
@@ -521,7 +532,7 @@ test('local check and save reuse a stored key without returning it', async () =>
   }
 })
 
-test('models diagnostic uses saved Base URL and Bearer key without exposing or changing settings', async () => {
+test('models diagnostic uses default Base URL and Bearer key without exposing or changing settings', async () => {
   const calls = []
   let providerStatus = 403
   const api = createAIHttpApi({ fetcher: async (url, options) => {
@@ -537,13 +548,8 @@ test('models diagnostic uses saved Base URL and Bearer key without exposing or c
   const address = httpServer.address()
   const base = `http://127.0.0.1:${address.port}`
   try {
-    const notConfigured = await fetch(`${base}/api/ai/models-check`)
-    assert.equal(notConfigured.status, 409)
-    assert.deepEqual(await notConfigured.json(), {
-      endpoint: '/models', error: 'AI settings are not saved in this server session.',
-    })
     await fetch(`${base}/api/ai/settings`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ai: credentials }),
     })
     const forbidden = await (await fetch(`${base}/api/ai/models-check`)).json()
     assert.deepEqual(forbidden, { endpoint: '/models', providerStatus: 403, ok: false })
@@ -590,7 +596,7 @@ test('a slow real response stays pending and does not become Mock before complet
     const saved = await fetch(`${base}/api/ai/settings`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
     })
-    assert.equal(saved.status, 200)
+    assert.equal(saved.status, 405)
     const context = opponentRequest()
     let settled = false
     const pending = fetch(`${base}/api/ai/opponent`, {
@@ -616,7 +622,7 @@ test('a genuine provider timeout returns an error and no fake opponent reply', a
   const base = `http://127.0.0.1:${address.port}`
   try {
     await fetch(`${base}/api/ai/settings`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ai: credentials }),
     })
     const response = await fetch(`${base}/api/ai/opponent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -697,7 +703,7 @@ test('local check endpoint identifies provider-stage errors without returning cr
   const address = httpServer.address()
   try {
     const response = await fetch(`http://127.0.0.1:${address.port}/api/ai/check`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ai: credentials }),
     })
     assert.equal(response.status, 502)
     const body = await response.json()

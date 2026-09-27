@@ -202,7 +202,10 @@ test('IDs-only AI requests deliver unchanged authoritative full prompts and reje
     mainInsight: { evidenceMessageId: 'P1', insight: 'После вопроса о времени уточните масштаб проблемы перед предложением решения.' },
   }
   const requests = []
-  const api = createAIHttpApi({ fetcher: async (_url, options) => {
+  const api = createAIHttpApi({ env: {
+    AI_PROVIDER: 'openai-compatible', AI_BASE_URL: 'https://provider.example/v1',
+    AI_API_KEY: 'test-only-key', AI_MODEL: 'test', AI_BYOK_ALLOWED_BASE_URLS: 'https://provider.example/v1',
+  }, production: true, fetcher: async (_url, options) => {
     const request = JSON.parse(options.body)
     requests.push(request)
     return new Response(JSON.stringify({ choices: [{ message: {

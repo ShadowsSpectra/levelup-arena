@@ -1,6 +1,7 @@
 import { createAIOpponentService } from './createAIOpponentService'
 import { createAIEvaluatorService } from './createAIEvaluatorService'
-import { createAISettingsStore, validateAISettings, type AISettings } from './aiSettings'
+import type { AISettings } from './aiSettings'
+import { createRuntimeAISettings } from './runtimeAISettings'
 import { EvaluationValidationError, parseArenaEvaluation } from './evaluatorResult'
 import { buildEvaluatorMessages } from './evaluatorPrompt'
 import { AIProviderError, createOpenAICompatibleProvider } from './openAICompatibleProvider'
@@ -19,11 +20,6 @@ type ResponseLike = {
   end(body: string): void
 }
 
-function send(res: ResponseLike, status: number, body: object) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
-  res.end(JSON.stringify(body))
-}
-
 async function readJson(req: RequestLike): Promise<unknown> {
   let body = ''
   for await (const chunk of req as AsyncIterable<Uint8Array>) {
@@ -36,8 +32,10 @@ async function readJson(req: RequestLike): Promise<unknown> {
 export function createAIHttpApi(options: {
   fetcher?: typeof fetch
   resolveCards?: typeof resolveFullArenaCards
+  env?: Readonly<Record<string, string | undefined>>
+  production?: boolean
 } = {}) {
-  const settings = createAISettingsStore()
+  const settings = createRuntimeAISettings(options)
   const resolveCards = options.resolveCards ?? resolveFullArenaCards
 
   async function check(candidate: AISettings) {
@@ -49,6 +47,11 @@ export function createAIHttpApi(options: {
   }
 
   return async function aiHttpApi(req: RequestLike, res: ResponseLike, next: Next) {
+    let requestApiKey: string | undefined
+    function send(res: ResponseLike, status: number, body: object) {
+      res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(settings.stringifyResponse(body, requestApiKey))
+    }
     const path = req.url?.split('?')[0]
     if (!path?.startsWith('/api/ai/')) return next()
     const origin = req.headers?.origin
@@ -65,13 +68,14 @@ export function createAIHttpApi(options: {
       if (path === '/api/ai/arena-content' && req.method === 'GET') {
         send(res, 200, getPublicArenaContent())
       } else if (path === '/api/ai/settings' && req.method === 'GET') {
-        send(res, 200, settings.getPublic())
-      } else if (path === '/api/ai/models-check' && req.method === 'GET') {
-        const configured = settings.get()
+        send(res, 200, settings.getPublicDefault())
+      } else if (path === '/api/ai/models-check' && (req.method === 'GET' || req.method === 'POST')) {
+        const configured = settings.resolveCheck(req.method === 'POST' ? await readJson(req) : {})
         if (!configured) {
-          send(res, 409, { endpoint: '/models', error: 'AI settings are not saved in this server session.' })
+          send(res, 409, { endpoint: '/models', error: 'AI приложения не настроен. Укажите BYOK для этого запроса.' })
           return
         }
+        requestApiKey = configured.apiKey
         try {
           const response = await (options.fetcher ?? fetch)(`${configured.baseUrl.replace(/\/+$/, '')}/models`, {
             method: 'GET',
@@ -85,19 +89,25 @@ export function createAIHttpApi(options: {
           send(res, 502, { endpoint: '/models', error: 'No HTTP response from the provider.' })
         }
       } else if (path === '/api/ai/check' && req.method === 'POST') {
-        const candidate = validateAISettings(await readJson(req), settings.get())
+        const candidate = settings.resolveCheck(await readJson(req))
+        if (!candidate) {
+          send(res, 409, { error: 'AI приложения не настроен. Введите собственные настройки AI.' })
+          return
+        }
+        requestApiKey = candidate.apiKey
         await check(candidate)
         send(res, 200, { connected: true })
       } else if (path === '/api/ai/settings' && req.method === 'POST') {
-        settings.save(await readJson(req))
-        send(res, 200, settings.getPublic())
+        send(res, 405, { error: 'Настройки BYOK сохраняются только в памяти вашей вкладки.' })
       } else if (path === '/api/ai/evaluate' && req.method === 'POST') {
-        const context = resolveArenaAIRequest(await readJson(req), 'evaluator', resolveCards)
-        const configured = settings.get()
+        const input = await readJson(req)
+        const context = resolveArenaAIRequest(input, 'evaluator', resolveCards)
+        const configured = settings.resolveRequest(input)
         if (!configured) {
           send(res, 409, { error: 'AI не настроен. Диалог сохранён — настройте AI и повторите оценку.' })
           return
         }
+        requestApiKey = configured.apiKey
         try {
           const service = createAIEvaluatorService({
             config: {
@@ -124,12 +134,14 @@ export function createAIHttpApi(options: {
           throw error
         }
       } else if (path === '/api/ai/opponent' && req.method === 'POST') {
-        const context = resolveArenaAIRequest(await readJson(req), 'opponent', resolveCards)
-        const configured = settings.get()
+        const input = await readJson(req)
+        const context = resolveArenaAIRequest(input, 'opponent', resolveCards)
+        const configured = settings.resolveRequest(input)
         if (!configured) {
           send(res, 409, { error: 'AI не настроен. Откройте AI Settings и повторите отправку.' })
           return
         }
+        requestApiKey = configured.apiKey
         const service = createAIOpponentService({
           config: {
             serverEndpoint: '/api/ai/opponent',

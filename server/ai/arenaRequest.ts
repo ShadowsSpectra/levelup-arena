@@ -21,7 +21,7 @@ export function resolveArenaAIRequest(
   resolveCards: typeof resolveFullArenaCards = resolveFullArenaCards,
 ) {
   const invalid = () => new Error('Некорректный запрос Arena или transcript.')
-  if (!record(input) || !onlyKeys(input, ['characterId', 'scenarioId', 'playerRole', 'session']) ||
+  if (!record(input) || !onlyKeys(input, ['characterId', 'scenarioId', 'playerRole', 'session', 'ai']) ||
       !text(input.characterId) || !text(input.scenarioId) ||
       typeof input.playerRole !== 'string' || !isRoleId(input.playerRole)) throw invalid()
 

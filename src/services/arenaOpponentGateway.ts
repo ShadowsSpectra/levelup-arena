@@ -1,5 +1,6 @@
 import type { OpponentService } from './opponentService'
 import { createArenaAIRequest } from './arenaAIRequest'
+import { aiSettingsSession } from './aiSettingsSession'
 
 export type AIStatus = 'real' | 'unconfigured' | 'unavailable'
 
@@ -8,7 +9,7 @@ export async function getAIStatus(): Promise<AIStatus> {
     const response = await fetch('/api/ai/settings', { cache: 'no-store' })
     if (!response.ok) return 'unavailable'
     const settings = await response.json() as { configured?: boolean }
-    return settings.configured ? 'real' : 'unconfigured'
+    return aiSettingsSession.getPublic() || settings.configured ? 'real' : 'unconfigured'
   } catch {
     return 'unavailable'
   }
