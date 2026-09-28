@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BalanceIcon, CheckCircleIcon, DialogueIcon, GrowthIcon, InitiativeIcon, LightbulbIcon, SearchIcon, SwitchIcon } from '../HeaderIcons'
 import { getRoleById } from '../../config/roles'
 import type { ArenaEvaluationState } from '../../state/useArenaFlow'
 import type { ArenaSession, PublicCharacter, PublicScenario } from '../../types/arena'
@@ -11,6 +12,14 @@ const criterionLabels: Record<ArenaCriterionId, string> = {
   communicationAdaptability: 'Адаптация к оппоненту',
   argumentation: 'Аргументация',
   initiative: 'Инициатива',
+}
+
+const criterionIcons: Record<ArenaCriterionId, typeof SearchIcon> = {
+  interestsDiscovery: SearchIcon,
+  objectionHandling: DialogueIcon,
+  communicationAdaptability: SwitchIcon,
+  argumentation: BalanceIcon,
+  initiative: InitiativeIcon,
 }
 
 const outcomeLabels: Record<ArenaOutcomeType, string> = {
@@ -156,17 +165,24 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
 
           <section className="arena-score-summary">
             <span>Общая оценка навыков</span>
-            <strong>{evaluation.result.overallScore}</strong>
-            <small>из 100</small>
+            <div className="arena-score-value">
+              <strong>{evaluation.result.overallScore}</strong>
+              <small>из 100</small>
+            </div>
+            <div className="arena-score-progress" role="progressbar" aria-label="Общая оценка навыков"
+              aria-valuemin={0} aria-valuemax={100} aria-valuenow={evaluation.result.overallScore}>
+              <span style={{ width: `${evaluation.result.overallScore}%` }} />
+            </div>
           </section>
 
           <section className="arena-rubric" aria-labelledby="arena-rubric-title">
             <h2 id="arena-rubric-title">Разбор навыков</h2>
             {arenaCriterionIds.map((id) => {
               const item = evaluation.result.scores[id]
+              const CriterionIcon = criterionIcons[id]
               return (
                 <article className="arena-rubric-item" key={id}>
-                  <header><h3>{criterionLabels[id]}</h3><strong>{item.score}</strong></header>
+                  <header><h3><CriterionIcon />{criterionLabels[id]}</h3><strong>{item.score}</strong></header>
                   <blockquote>«{item.evidence}»</blockquote>
                   <p>{item.reason}</p>
                 </article>
@@ -175,12 +191,12 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
           </section>
 
           <div className="arena-review-columns">
-            <section><h2>Сильные стороны</h2><ul>{evaluation.result.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section>
-            <section><h2>Что улучшить</h2><ul>{evaluation.result.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section>
+            <section className="arena-strengths"><h2><CheckCircleIcon />Сильные стороны</h2><ul>{evaluation.result.strengths.map((item) => <li key={item}>{item}</li>)}</ul></section>
+            <section className="arena-improvements"><h2><GrowthIcon />Что улучшить</h2><ul>{evaluation.result.improvements.map((item) => <li key={item}>{item}</li>)}</ul></section>
           </div>
 
           <section className="arena-main-insight">
-            <span className="section-kicker">Главный вывод</span>
+            <span className="section-kicker arena-insight-label"><LightbulbIcon />Главный вывод</span>
             <p>{evaluation.result.mainInsight.insight}</p>
             <blockquote>«{evaluation.result.mainInsight.evidence}»</blockquote>
           </section>

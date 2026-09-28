@@ -65,3 +65,35 @@ export function KnownInfoIcon() {
 export function SendIcon() {
   return <svg {...arenaIconProps}><path d="M12 19V5" /><path d="m6 11 6-6 6 6" /></svg>
 }
+
+export function SearchIcon() {
+  return <svg {...arenaIconProps}><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></svg>
+}
+
+export function DialogueIcon() {
+  return <svg {...arenaIconProps}><path d="M4 5h11v8H8l-4 3Z" /><path d="M10 16h6l4 3V9h-3" /></svg>
+}
+
+export function SwitchIcon() {
+  return <svg {...arenaIconProps}><path d="M4 8h14" /><path d="m15 5 3 3-3 3" /><path d="M20 16H6" /><path d="m9 13-3 3 3 3" /></svg>
+}
+
+export function BalanceIcon() {
+  return <svg {...arenaIconProps}><path d="M12 3v17M7 21h10M5 6h14" /><path d="m5 6-3 6h6Zm14 0-3 6h6Z" /></svg>
+}
+
+export function InitiativeIcon() {
+  return <svg {...arenaIconProps}><path d="m13 2-8 12h6l-1 8 9-13h-6Z" /></svg>
+}
+
+export function LightbulbIcon() {
+  return <svg {...arenaIconProps}><path d="M9 18h6M10 22h4" /><path d="M8 14a7 7 0 1 1 8 0c-1 1-1 2-1 4H9c0-2 0-3-1-4Z" /></svg>
+}
+
+export function CheckCircleIcon() {
+  return <svg {...arenaIconProps}><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" /></svg>
+}
+
+export function GrowthIcon() {
+  return <svg {...arenaIconProps}><path d="M4 18 10 12l4 4 6-8" /><path d="M15 8h5v5" /></svg>
+}

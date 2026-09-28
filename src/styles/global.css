@@ -472,8 +472,8 @@ h1, h2, p { margin-top: 0; }
 .arena-finish-button { margin-top: 22px; }
 .arena-result { max-width: 780px; padding-top: 56px; }
 .arena-result-meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: #626a7a; line-height: 1.5; }
-.arena-evaluation-status { display: grid; gap: 8px; margin-top: 32px; padding: 20px; border-left: 3px solid #445ccc; background: #eef1fb; color: #465063; }
-.arena-evaluation-status.is-error { border-left-color: #a43d3d; background: #fff1f1; }
+.arena-evaluation-status { display: grid; gap: 8px; margin-top: 32px; padding: 18px 20px; border: 1px solid #d8def5; border-top-color: #91a1e5; border-radius: 18px; background: #f3f5ff; color: #465063; }
+.arena-evaluation-status.is-error { border-color: #efcece; border-top-color: #c86b6b; background: #fff3f3; }
 .arena-evaluation-status .secondary-action-button { justify-self: start; margin-top: 8px; }
 .arena-evaluation-loading-heading { display: flex; align-items: center; gap: 10px; color: #31394a; }
 .arena-evaluation-loader { display: inline-flex; align-items: center; gap: 4px; }
@@ -482,10 +482,10 @@ h1, h2, p { margin-top: 0; }
 .arena-evaluation-loader i:nth-child(3) { animation-delay: .28s; }
 @keyframes arena-evaluation-dot { 50% { opacity: .3; transform: translateY(-2px); } }
 .arena-evaluation { display: grid; gap: 28px; margin-top: 32px; }
-.arena-outcome { padding: 22px; border-left: 4px solid #c38532; background: #fff7e8; }
-.arena-outcome-success { border-left-color: #2e8b62; background: #edf8f2; }
-.arena-outcome-bad_agreement { border-left-color: #c38532; background: #fff7e8; }
-.arena-outcome-no_agreement { border-left-color: #758096; background: #f2f4f7; }
+.arena-outcome { padding: 22px; border: 1px solid #ead9ba; border-top: 3px solid #c38532; border-radius: 18px; background: #fff9ee; }
+.arena-outcome-success { border-color: #c9e4d6; border-top-color: #2e8b62; background: #f2faf6; }
+.arena-outcome-bad_agreement { border-color: #ead9ba; border-top-color: #c38532; background: #fff9ee; }
+.arena-outcome-no_agreement { border-color: #d9dde5; border-top-color: #758096; background: #f5f6f8; }
 .arena-outcome-heading { display: flex; }
 .arena-outcome-title { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .arena-outcome-marker { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid currentColor; border-radius: 50%; color: #a66b1d; font-size: 1.1rem; font-weight: 800; }
@@ -507,24 +507,37 @@ h1, h2, p { margin-top: 0; }
 .result-navigation .result-home-action { color: #8a91a0; }
 .result-share-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .result-share-notice { margin: 10px 0 0; font-size: .85rem; }
-.arena-score-summary { display: flex; align-items: baseline; gap: 8px; padding-bottom: 22px; border-bottom: 1px solid #dfe2e8; }
-.arena-score-summary span { margin-right: auto; font-weight: 700; }
-.arena-score-summary strong { color: #172036; font-size: 2.4rem; }
+.arena-score-summary { display: grid; gap: 8px; padding-bottom: 22px; border-bottom: 1px solid #dfe2e8; }
+.arena-score-summary > span { color: #626a7a; font-size: .76rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.arena-score-value { display: flex; align-items: baseline; gap: 8px; }
+.arena-score-summary strong { color: #445ccc; font-size: 2.4rem; }
 .arena-score-summary small { color: #626a7a; }
+.arena-score-progress { width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: #e8ebf3; }
+.arena-score-progress span { display: block; height: 100%; border-radius: inherit; background: #445ccc; }
 .arena-rubric { display: grid; gap: 14px; }
 .arena-rubric > h2, .arena-review-columns h2 { margin-bottom: 2px; font-size: 1.35rem; }
-.arena-rubric-item { padding: 18px; border: 1px solid #dfe2e8; background: #fff; }
-.arena-rubric-item header { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; }
-.arena-rubric-item h3 { margin: 0; font-size: 1rem; }
+.arena-rubric-item { padding: 18px; border: 1px solid #dfe2e8; border-radius: 18px; background: #fff; }
+.arena-rubric-item header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.arena-rubric-item h3 { display: flex; min-width: 0; align-items: center; gap: 9px; margin: 0; font-size: 1rem; }
+.arena-rubric-item h3 .arena-ui-icon { width: 19px; height: 19px; color: #6678c9; }
 .arena-rubric-item header strong { color: #445ccc; font-size: 1.25rem; }
 .arena-rubric-item blockquote { margin: 14px 0 8px; padding-left: 14px; border-left: 2px solid #8c98d5; color: #465063; line-height: 1.5; }
 .arena-rubric-item p { margin: 0; }
 .arena-review-columns { display: grid; gap: 20px; grid-template-columns: repeat(2, 1fr); }
-.arena-review-columns section { padding: 20px; border: 1px solid #dfe2e8; background: #fff; }
+.arena-review-columns section { padding: 20px; border: 1px solid #dfe2e8; border-radius: 18px; background: #fff; }
+.arena-review-columns h2 { display: flex; align-items: center; gap: 9px; }
+.arena-review-columns h2 .arena-ui-icon { width: 19px; height: 19px; }
+.arena-review-columns .arena-strengths { border-color: #d5e9dd; background: #f5fbf7; }
+.arena-review-columns .arena-strengths h2 .arena-ui-icon { color: #398161; }
+.arena-review-columns .arena-improvements { border-color: #eadfc7; background: #fffaf1; }
+.arena-review-columns .arena-improvements h2 .arena-ui-icon { color: #a8752d; }
 .arena-review-columns ul { margin-bottom: 0; padding-left: 20px; line-height: 1.6; }
-.arena-main-insight { padding: 22px; border-left: 3px solid #445ccc; background: #eef1fb; }
+.arena-main-insight { padding: 22px; border: 1px solid #d8def5; border-top: 3px solid #91a1e5; border-radius: 18px; background: #f3f5ff; }
+.arena-insight-label { display: inline-flex; align-items: center; gap: 8px; }
+.arena-insight-label .arena-ui-icon { width: 19px; height: 19px; color: #6678c9; }
 .arena-main-insight p { margin: 8px 0 0; color: #31394a; font-size: 1.05rem; }
 .arena-main-insight blockquote { margin: 12px 0 0; padding-left: 14px; border-left: 2px solid #8c98d5; color: #465063; line-height: 1.5; }
+.arena-result .primary-button, .arena-result .secondary-action-button { border-radius: 12px; }
 .ai-settings-entry { margin-top: 28px; }
 .arena-ai-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 20px; margin-bottom: 16px; }
 .arena-ai-mode { color: #626a7a; font-size: .82rem; font-weight: 700; }
@@ -632,6 +645,7 @@ h1, h2, p { margin-top: 0; }
   .arena-ending-suggestion { padding: 14px; }
   .arena-ending-actions { flex-direction: column; }
   .arena-ending-actions button { width: 100%; }
+  .arena-evaluation-status, .arena-outcome, .arena-rubric-item, .arena-review-columns section, .arena-main-insight { border-radius: 16px; }
   .arena-review-columns { grid-template-columns: 1fr; }
 }
 
