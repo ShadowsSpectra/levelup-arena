@@ -30,26 +30,31 @@ h1, h2, p { margin-top: 0; }
 .section-kicker, .step-label { color: #445ccc; font-size: .78rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 
 .onboarding-page, .selection-page, .placeholder-page { min-height: 100vh; background: #fff; }
-.onboarding-page { display: grid; place-items: center; padding: 24px; }
-.onboarding-shell { display: flex; width: min(100%, 760px); min-height: 520px; flex-direction: column; padding: clamp(28px, 5vw, 52px); border: 1px solid #e0e3e9; background: #fff; }
+.onboarding-page { display: grid; place-items: center; padding: 24px; background: #f7f9fc; }
+.onboarding-shell { display: flex; width: min(100%, 760px); min-height: 520px; flex-direction: column; padding: clamp(28px, 5vw, 52px); border: 1px solid #e2e6ef; border-radius: 22px; background: #fff; box-shadow: 0 12px 36px rgb(23 32 54 / 5%); }
 .onboarding-content { display: flex; max-width: 620px; flex: 1; flex-direction: column; justify-content: center; padding: 60px 0 48px; }
+.onboarding-content .step-label { align-self: flex-start; padding: 7px 11px; border-radius: 999px; background: #f0f3ff; }
 .onboarding-content h1, .page-intro h1, .home-intro h1, .placeholder-content h1 { margin: 14px 0 18px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.08; letter-spacing: -.045em; }
 .onboarding-content p, .page-intro p, .home-intro p, .placeholder-content p { max-width: 610px; margin-bottom: 0; color: #626a7a; font-size: 1.05rem; line-height: 1.65; }
 .onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .step-dots { display: flex; gap: 8px; }
-.step-dot { width: 24px; height: 3px; background: #d9dce4; }
-.step-dot.is-active { background: #445ccc; }
+.onboarding-footer .step-dot { width: 26px; height: 4px; border-radius: 999px; background: #d9dfea; }
+.onboarding-footer .step-dot.is-active { background: #445ccc; }
+.onboarding-footer .primary-button { border-radius: 13px; transition: background-color .15s ease, box-shadow .15s ease; }
+.onboarding-footer .primary-button:hover { box-shadow: 0 4px 12px rgb(68 92 204 / 15%); }
+.onboarding-footer .primary-button:focus-visible { outline: 3px solid rgb(68 92 204 / 30%); outline-offset: 3px; }
 
 .page-container, .placeholder-shell { width: min(100%, 1120px); margin: 0 auto; padding: 36px 28px 72px; }
 .page-intro { max-width: 700px; padding: 100px 0 48px; }
-.role-list { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #dfe2e8; border-bottom: 1px solid #dfe2e8; }
-.role-option { display: flex; min-height: 280px; flex-direction: column; align-items: flex-start; padding: 28px; border: 0; border-right: 1px solid #dfe2e8; background: #fff; color: inherit; text-align: left; cursor: pointer; }
-.role-option:last-child { border-right: 0; }
-.role-option:hover { background: #f7f8fc; }
+.role-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.role-option { display: flex; min-height: 280px; flex-direction: column; align-items: flex-start; padding: 28px; border: 1px solid #dfe3ec; border-radius: 18px; background: #fbfcff; color: inherit; text-align: left; cursor: pointer; transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease; }
+.role-option:hover { border-color: #aeb9ee; background: #f7f9ff; box-shadow: 0 8px 22px rgb(23 32 54 / 5%); }
+.role-option:focus-visible { border-color: #445ccc; outline: 3px solid rgb(68 92 204 / 18%); outline-offset: 3px; }
 .role-short-name { margin-bottom: 50px; color: #818899; font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .role-name { margin-bottom: 12px; font-size: 1.35rem; font-weight: 750; }
 .role-description { color: #626a7a; line-height: 1.55; }
-.role-action { margin-top: auto; padding-top: 32px; color: #445ccc; font-weight: 700; }
+.role-action { margin-top: auto; padding: 9px 12px; border-radius: 10px; background: #eef2ff; color: #445ccc; font-weight: 700; }
+.role-option:hover .role-action, .role-option:focus-visible .role-action { background: #e5eaff; }
 
 .app-shell { min-height: 100vh; }
 .app-header { display: flex; min-height: 76px; align-items: center; justify-content: space-between; gap: 28px; padding: 14px max(28px, calc((100vw - 1064px) / 2)); border-bottom: 1px solid #dfe2e8; background: #fff; }
@@ -516,18 +521,25 @@ h1, h2, p { margin-top: 0; }
   .player-stats { width: 100%; justify-content: space-between; }
   .home-leaderboard { grid-template-columns: 1fr; gap: 18px; }
   .role-list, .activity-list { grid-template-columns: 1fr; }
-  .role-option, .activity { min-height: 0; border-right: 0; border-bottom: 1px solid #dfe2e8; }
-  .role-option:last-child, .activity:last-child { border-bottom: 0; }
+  .role-option, .activity { min-height: 0; }
+  .activity { border-right: 0; border-bottom: 1px solid #dfe2e8; }
+  .activity:last-child { border-bottom: 0; }
   .role-short-name { margin-bottom: 28px; }
   .activity { min-height: 300px; }
 }
 
 @media (max-width: 560px) {
   body { min-width: 0; }
-  .onboarding-page { padding: 0; }
-  .onboarding-shell { min-height: 100vh; padding: 24px; border: 0; }
-  .onboarding-footer { align-items: flex-start; flex-direction: column; }
+  .onboarding-page { padding: 12px; }
+  .onboarding-shell { min-height: calc(100vh - 24px); min-height: calc(100dvh - 24px); padding: 24px 24px max(32px, env(safe-area-inset-bottom)); }
+  .onboarding-content { flex: 0 0 auto; justify-content: flex-start; padding: clamp(48px, 8dvh, 72px) 0 22px; }
+  .onboarding-footer { align-items: flex-start; flex-direction: column; gap: 18px; }
   .onboarding-footer .primary-button { width: 100%; }
+  .role-list { gap: 12px; }
+  .role-option { padding: 20px; border-radius: 16px; }
+  .role-short-name { margin-bottom: 16px; }
+  .role-name { margin-bottom: 8px; }
+  .role-action { margin-top: 18px; }
   .page-container, .home-content, .placeholder-shell { padding-right: 20px; padding-left: 20px; }
   .page-intro { padding-top: 72px; }
   .app-header { min-height: 0; gap: 6px; padding: 8px 12px; }
