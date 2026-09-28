@@ -65,8 +65,8 @@ h1, h2, p { margin-top: 0; }
 .text-button { font-size: .82rem; }
 .player-stats { gap: 24px; color: #31394a; font-size: .9rem; font-weight: 700; }
 .level-stat { gap: 9px; }
-.xp-track { width: 92px; height: 5px; overflow: hidden; background: #dfe2e8; }
-.xp-fill { display: block; height: 100%; background: #445ccc; }
+.xp-track { width: 92px; height: 6px; overflow: hidden; border-radius: 999px; background: #dfe2e8; }
+.xp-fill { display: block; height: 100%; border-radius: inherit; background: #445ccc; }
 .stat-detail { color: #737b8a; font-size: .78rem; font-weight: 600; }
 .stat-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .header-stat-icon { display: block; width: 16px; height: 16px; flex: 0 0 auto; color: #445ccc; }
