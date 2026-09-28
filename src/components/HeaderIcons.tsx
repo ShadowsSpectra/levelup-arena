@@ -61,3 +61,7 @@ export function GoalIcon() {
 export function KnownInfoIcon() {
   return <svg {...arenaIconProps}><path d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Z" /><path d="M9 2h6v4H9ZM9 11h6M9 15h4" /></svg>
 }
+
+export function SendIcon() {
+  return <svg {...arenaIconProps}><path d="M12 19V5" /><path d="m6 11 6-6 6 6" /></svg>
+}

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { SendIcon } from '../HeaderIcons'
+import { getCharacterPressureLabel, getDifficultyLabel } from '../../services/characterProfile'
 import { getNaturalEndingSuggestion } from '../../services/naturalEnding'
 import type { ArenaSession, PublicCharacter, PublicScenario } from '../../types/arena'
+import { ArenaMessage } from './ArenaMessage'
 
 type NegotiationViewProps = {
   character: PublicCharacter
@@ -33,6 +36,8 @@ export function NegotiationView({
     ? session.messages.filter((message) => message.id !== 'opponent-opening')
     : session.messages
   const suggestedEndingMessageId = isOpening ? null : getNaturalEndingSuggestion(session, dismissedEndingMessageId)
+  const difficultyLabel = character.difficulty ? getDifficultyLabel(character.difficulty) : null
+  const pressureLabel = character.pressure ? getCharacterPressureLabel(character) : null
 
   useEffect(() => {
     const container = transcriptRef.current
@@ -53,10 +58,14 @@ export function NegotiationView({
   return (
     <section className="arena-dialogue" aria-labelledby="arena-dialogue-title">
       <div className="arena-dialogue-heading">
-        <div>
+        <div className="arena-dialogue-title-block">
           <span className="section-kicker">Переговоры</span>
           <h1 id="arena-dialogue-title">{scenario.title}</h1>
-          <p>{character.name} · {character.role}</p>
+          <div className="arena-dialogue-meta">
+            <span>{character.name} · {character.role}</span>
+            {difficultyLabel && <span className="arena-difficulty-badge">{difficultyLabel}</span>}
+            {pressureLabel && <span>{pressureLabel}</span>}
+          </div>
         </div>
         {!atLimit && (
           <button className="secondary-action-button" type="button" disabled={manualFinishDisabled} onClick={onFinish}>
@@ -67,15 +76,24 @@ export function NegotiationView({
 
       <div className="arena-transcript" ref={transcriptRef} aria-live="polite" aria-label="История переговоров">
         {visibleMessages.map((message) => (
-          <article className={`arena-message arena-message-${message.speaker}`} key={message.id}>
-            <span>{message.speaker === 'player' ? 'Вы' : `${character.name} · ${character.role}`}</span>
-            <p>{message.text}</p>
-          </article>
+          <ArenaMessage character={character} speaker={message.speaker} text={message.text} key={message.id} />
         ))}
         {typing && (
           <div className="arena-typing" role="status">
             <span className="arena-typing-dot" aria-hidden="true" />
             {character.name} печатает…
+          </div>
+        )}
+        {suggestedEndingMessageId && (
+          <div className="arena-ending-suggestion" role="status">
+            <strong>Похоже, переговоры завершены</strong>
+            <div className="arena-ending-actions">
+              <button className="primary-button" type="button" onClick={onFinish}>Перейти к результатам</button>
+              <button className="secondary-action-button" type="button"
+                onClick={() => setDismissedEndingMessageId(suggestedEndingMessageId)}>
+                Продолжить переговоры
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -90,25 +108,13 @@ export function NegotiationView({
           <button className="secondary-action-button" type="button" onClick={onOpenAISettings}>AI Settings</button>
         </div>
       )}
-      {suggestedEndingMessageId && (
-        <div className="arena-ending-suggestion" role="status">
-          <strong>Похоже, переговоры завершены</strong>
-          <div className="arena-ending-actions">
-            <button className="primary-button" type="button" onClick={onFinish}>Перейти к результатам</button>
-            <button className="secondary-action-button" type="button"
-              onClick={() => setDismissedEndingMessageId(suggestedEndingMessageId)}>
-              Продолжить переговоры
-            </button>
-          </div>
-        </div>
-      )}
       {atLimit ? (
         <button className="primary-button arena-finish-button" type="button" onClick={onFinish}>
           Перейти к результату
         </button>
       ) : (
         <form className="arena-composer" onSubmit={submit}>
-          <label htmlFor="arena-draft">Ваше сообщение</label>
+          <label className="visually-hidden" htmlFor="arena-draft">Ваше сообщение</label>
           <textarea id="arena-draft" value={draft} onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -116,9 +122,10 @@ export function NegotiationView({
                 if (draft.trim() && !typing) void sendDraft()
               }
             }}
-            placeholder="Напишите вашу реплику…" rows={3} disabled={typing} />
-          <button className="primary-button" type="submit" disabled={!draft.trim() || typing}>
-            Отправить
+            placeholder="Напишите вашу реплику…" rows={2} disabled={typing} />
+          <button className="arena-send-button" type="submit" disabled={!draft.trim() || typing}
+            aria-label="Отправить" title="Отправить">
+            <SendIcon />
           </button>
         </form>
       )}

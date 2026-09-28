@@ -3,6 +3,7 @@ import { getRoleById } from '../../config/roles'
 import type { ArenaEvaluationState } from '../../state/useArenaFlow'
 import type { ArenaSession, PublicCharacter, PublicScenario } from '../../types/arena'
 import { arenaCriterionIds, type ArenaCriterionId, type ArenaEvaluation, type ArenaOutcomeType } from '../../types/arenaEvaluation'
+import { ArenaMessage } from './ArenaMessage'
 
 const criterionLabels: Record<ArenaCriterionId, string> = {
   interestsDiscovery: 'Выявление интересов',
@@ -64,10 +65,7 @@ export function ArenaTranscriptView({ character, scenario, session, onBack }: Ar
       </div>
       <div className="arena-transcript arena-transcript-readonly" aria-label="Завершённые переговоры">
         {session.messages.map((message) => (
-          <article className={`arena-message arena-message-${message.speaker}`} key={message.id}>
-            <span>{message.speaker === 'player' ? 'Вы' : `${character.name} · ${character.role}`}</span>
-            <p>{message.text}</p>
-          </article>
+          <ArenaMessage character={character} speaker={message.speaker} text={message.text} key={message.id} />
         ))}
       </div>
     </section>

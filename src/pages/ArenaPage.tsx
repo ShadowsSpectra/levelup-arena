@@ -83,7 +83,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
       <AppHeader role={role} roleProgress={roleProgress} energy={energy} streak={streak}
         onChangeRole={onChangeRole} />
       <main className="arena-page">
-        <div className="arena-ai-toolbar">
+        <div className={`arena-ai-toolbar${arena.step === 'negotiation' ? ' arena-ai-toolbar-dialogue' : ''}`}>
           <span className="arena-ai-mode" role="status">
             {arena.session?.status === 'responding'
               ? 'Ожидаем ответ Real AI…'
