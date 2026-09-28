@@ -1,9 +1,10 @@
 import { AppHeader } from '../components/AppHeader'
+import { CommunicationIcon, GoalIcon, KnownInfoIcon, LockIcon, PressureIcon } from '../components/HeaderIcons'
 import { NegotiationView } from '../components/arena/NegotiationView'
 import { ArenaResultView } from '../components/arena/ArenaResultView'
 import type { Role } from '../config/roles'
 import { localCharacterSource, localScenarioSource } from '../content/arenaSources'
-import { getCharacterPublicProfile, getDifficultyStars } from '../services/characterProfile'
+import { getCharacterPressureLabel, getCharacterStyleLabel, getDifficultyLabel, getDifficultyStars } from '../services/characterProfile'
 import { createBrowserOpponentService, getAIStatus, type AIStatus } from '../services/arenaOpponentGateway'
 import { createBrowserEvaluatorService } from '../services/evaluatorService'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -98,8 +99,8 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
               <span className="section-kicker">Arena · {role.name}</span>
               <h1>Выберите оппонента</h1>
               <div className="arena-setup-stats">
-                <span>Уровень {roleProgress.level}</span>
-                <span>Доступно оппонентов: {availableCount}</span>
+                <span className="arena-level-badge">Уровень {roleProgress.level}</span>
+                <span className="arena-availability-badge">{availableCount} из {characters.length} доступно</span>
               </div>
             </header>
             {arena.loadError ? (
@@ -119,21 +120,28 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                   {characters.map((character) => {
                     const unlocked = isBossUnlocked(character, roleProgress, roleProgress.level)
                     const previousBoss = characters.find(({ id }) => id === character.unlockRequirements?.previousBossId)
+                    const defeated = roleProgress.bosses[character.id]?.defeated
                     return (
-                      <button className={`arena-choice-card${arena.selectedCharacterId === character.id ? ' is-selected' : ''}`}
+                      <button className={`arena-choice-card arena-opponent-card${arena.selectedCharacterId === character.id ? ' is-selected' : ''}${unlocked ? '' : ' is-locked'}`}
                         type="button" key={character.id} aria-pressed={arena.selectedCharacterId === character.id}
                         disabled={!unlocked} onClick={() => arena.chooseCharacter(character.id)}>
                         <span className="arena-card-title">{character.name}</span>
                         <span className="arena-card-subtitle">{character.role}</span>
-                        <span>Сложность: {getDifficultyStars(character.difficulty)}</span>
-                        <span>{getCharacterPublicProfile(character)}</span>
-                        {roleProgress.bosses[character.id]?.defeated && <span>Пройден</span>}
-                        {!unlocked && <span>Пока закрыт
-                          {character.unlockRequirements?.minLevel && roleProgress.level < character.unlockRequirements.minLevel
-                            ? ` · нужен уровень ${character.unlockRequirements.minLevel}` : ''}
-                          {previousBoss && !roleProgress.bosses[previousBoss.id]?.defeated
-                            ? ` · победите ${previousBoss.name}` : ''}
+                        <span className="arena-opponent-traits">
+                          <span className="arena-difficulty-badge">{getDifficultyStars(character.difficulty)} {getDifficultyLabel(character.difficulty)}</span>
+                          <span className="arena-trait"><CommunicationIcon />{getCharacterStyleLabel(character)}</span>
+                          <span className="arena-trait"><PressureIcon />{getCharacterPressureLabel(character)}</span>
+                        </span>
+                        {defeated && <span className="arena-complete-badge">Пройден</span>}
+                        {!unlocked && <span className="arena-lock-copy">
+                          <span className="arena-lock-status"><LockIcon />
+                            {character.unlockRequirements?.minLevel
+                              ? `Откроется на уровне ${character.unlockRequirements.minLevel}` : 'Пока закрыт'}
+                          </span>
+                          {previousBoss && !roleProgress.bosses[previousBoss.id]?.defeated &&
+                            <span>Сначала победите босса «{previousBoss.name}»</span>}
                         </span>}
+                        {unlocked && <span className="arena-card-action">Начать переговоры →</span>}
                       </button>
                     )
                   })}
@@ -160,7 +168,11 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                           type="button" key={scenario.id} aria-pressed={arena.selectedScenarioId === scenario.id}
                           onClick={() => arena.chooseScenario(scenario.id)}>
                           <span className="arena-card-title">{scenario.title}</span>
-                          <span className="arena-card-subtitle">{scenario.category}</span>
+                          <span className="arena-scenario-tags">
+                            {scenario.category.split('/').map((topic) => topic.trim()).filter(Boolean).map((topic) =>
+                              <span key={topic}>{topic}</span>)}
+                          </span>
+                          <span className="arena-card-action">Выбрать сценарий →</span>
                         </button>
                       ))}
                       <div className="arena-preview-card" aria-disabled="true">
@@ -175,8 +187,11 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                         <h3>Перед началом</h3>
                         <p><strong>Вы — {role.name}.</strong></p>
                         <p>{arena.selected.scenario.playerBrief.situation}</p>
-                        <p><strong>Ваша цель:</strong> {arena.selected.scenario.playerBrief.playerGoal}</p>
-                        <h3>Что вам известно</h3>
+                        <div className="arena-brief-goal">
+                          <span className="arena-brief-label"><GoalIcon /><strong>Ваша цель</strong></span>
+                          <p>{arena.selected.scenario.playerBrief.playerGoal}</p>
+                        </div>
+                        <div className="arena-brief-known-heading"><KnownInfoIcon /><h3>Что вам известно</h3></div>
                         <ul>{arena.selected.scenario.playerBrief.knownInformation.map((fact) => <li key={fact}>{fact}</li>)}</ul>
                       </div>
                     )}
