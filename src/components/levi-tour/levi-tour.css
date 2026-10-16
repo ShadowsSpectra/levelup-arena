@@ -1,0 +1,23 @@
+.levi-tour { display: flex; align-items: center; gap: 12px; max-width: 580px; margin: 0 0 20px; }
+.levi-tour > .mascot { width: 120px; height: 120px; }
+.levi-tour__bubble { position: relative; min-width: 0; max-width: 440px; padding: 14px 18px; border-radius: 16px; background: #eef2ff; color: #172036; }
+.levi-tour__bubble::before { position: absolute; top: 50%; left: -10px; width: 12px; height: 16px; transform: translateY(-50%); clip-path: polygon(0 50%, 100% 0, 100% 100%); background: inherit; content: ''; }
+.levi-tour__bubble p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.levi-tour__bubble button { min-height: 44px; padding: 8px 0; }
+.levi-tour__actions { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.levi-tour__actions--greeting { flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 12px; }
+.levi-tour__actions--greeting > .text-button { white-space: nowrap; }
+.levi-tour__actions .levi-tour__next { margin-left: auto; padding: 10px 12px; border-radius: 12px; white-space: nowrap; }
+.levi-tour__message { display: grid; gap: 8px; margin-bottom: 14px; animation: levi-message-in .24s ease-out; }
+@keyframes levi-message-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .levi-tour__message { animation: none; }
+}
+@media (max-width: 560px) {
+  .levi-tour { flex-direction: column; gap: 8px; align-items: center; margin-bottom: 20px; }
+  .levi-tour > .mascot { width: 104px; height: 104px; }
+  .levi-tour__bubble { width: 100%; max-width: none; padding: 12px 14px; font-size: .9rem; }
+  .levi-tour__actions--greeting { gap: 8px; }
+  .levi-tour__actions .levi-tour__next { padding: 10px 6px; font-size: .82rem; }
+  .levi-tour__bubble::before { top: -10px; left: 50%; width: 16px; height: 12px; transform: translateX(-50%); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+}

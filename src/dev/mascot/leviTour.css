@@ -1,0 +1,22 @@
+.levi-tour-preview__modes, .levi-tour-preview__tools { padding: 16px max(20px, calc((100vw - 1064px) / 2)); background: #f5f6f8; border-bottom: 1px solid #dfe3ec; }
+.levi-tour-preview__modes { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.levi-tour-preview__modes button { min-height: 44px; padding: 8px 12px; border: 1px solid #cbd2e2; border-radius: 10px; background: #fff; color: #31394a; cursor: pointer; }
+.levi-tour-preview__modes a { color: #445ccc; }
+.levi-tour-preview__tools p { margin: 8px 0; line-height: 1.5; overflow-wrap: anywhere; }
+.levi-tour-preview .page-intro { padding-top: 40px; padding-bottom: 28px; }
+.levi-tour-preview .page-intro h1 { overflow-wrap: anywhere; }
+.levi-tour-preview [data-tour='role-card'] { transition: border-color .4s ease, box-shadow .4s ease, background-color .15s ease; }
+.levi-tour-preview[data-tour-active='true'] [data-tour='role-card'][data-tour-highlighted='true'] { border-color: #7d8edc; box-shadow: 0 0 0 3px rgb(68 92 204 / 12%); }
+.levi-tour-preview [data-tour='role-card']:focus-visible { outline: 3px solid #445ccc; outline-offset: 5px; }
+@media (max-width: 560px) {
+  /* Keep dev controls available below the real screen, outside its first viewport. */
+  body:has(.levi-tour-preview) #root { display: flex; flex-direction: column; }
+  .levi-tour-preview__modes { order: 1; }
+  .levi-tour-preview { display: flex; flex-direction: column; }
+  .levi-tour-preview > .selection-page { order: -1; }
+  .levi-tour-preview .page-container { padding-top: 20px; }
+  .levi-tour-preview .page-intro { padding-top: 24px; padding-bottom: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .levi-tour-preview [data-tour='role-card'] { transition: none; }
+}
