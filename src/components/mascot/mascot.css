@@ -1,0 +1,17 @@
+.mascot { display: inline-block; width: var(--mascot-size); height: var(--mascot-size); flex: 0 0 auto; }
+.mascot__breathing { position: relative; width: 100%; height: 100%; transform-origin: 55% 96%; animation: mascot-breathe 3.8s ease-in-out infinite; }
+.mascot__figure { position: relative; isolation: isolate; width: 100%; height: 100%; }
+.mascot__figure--happy { transform-origin: 55% 96%; animation: mascot-joy .65s ease-out; }
+.mascot__tail, .mascot__body { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; pointer-events: none; }
+.mascot__tail { z-index: 0; transform-origin: 38% 92%; }
+.mascot__tail--moving { animation: mascot-tail 3.2s ease-in-out infinite; }
+/* The supplied body PNGs already include a tail. Hide only that left/lower area;
+   the separate tail layer stays behind the intact torso at every sway angle. */
+.mascot__body { z-index: 1; clip-path: polygon(0 0, 100% 0, 100% 100%, 37% 100%, 35% 96%, 34% 90%, 35% 82%, 34% 76%, 32% 68%, 33% 62%, 34% 56%, 0 56%); }
+.mascot--still .mascot__breathing, .mascot--still .mascot__figure, .mascot--still .mascot__tail { animation: none; }
+@keyframes mascot-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012, 1.022); } }
+@keyframes mascot-tail { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+@keyframes mascot-joy { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-5%) rotate(-2deg); } 65% { transform: translateY(-2%) rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .mascot__breathing, .mascot__figure, .mascot__tail { animation: none; }
+}

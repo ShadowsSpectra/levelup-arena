@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --configLoader runner",
+    "dev:mascot": "vite --config vite.mascot.config.ts --configLoader runner",
     "build": "tsc -b && vite build --configLoader runner && vite build --config vite.server.config.ts --configLoader runner",
     "start": "node --env-file-if-exists=.env server/index.mjs",
     "typecheck": "tsc -b --pretty false",
