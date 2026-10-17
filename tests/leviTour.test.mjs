@@ -16,6 +16,9 @@ const { getLeviSpotlightHole, LeviSpotlight } = await vite.ssrLoadModule('/src/c
 const { getLeviHomeGuidePosition, getLeviHomeScrollTop, getLeviMobileScrollTop, highlightLeviHomeTargets } = await vite.ssrLoadModule('/src/services/leviTourHomeHighlight.ts')
 const { getRoleById } = await vite.ssrLoadModule('/src/config/roles.ts')
 const { createInitialProgression, getRoleProgress } = await vite.ssrLoadModule('/src/services/progression.ts')
+const { LEVI_ARENA_SLICE_KEY, createLeviArenaStore, leviArenaSteps, reconcileLeviArenaStep, nextLeviArenaStep,
+  readLeviArenaSnapshot, highlightLeviArenaTargets, getLeviLockedExplanation,
+  earlyOpponentComment, isEarlyOpponentSelection } = await vite.ssrLoadModule('/src/services/leviArenaTour.ts')
 
 function memory(entries = []) {
   const data = new Map(entries)
@@ -223,7 +226,7 @@ test('skip, continue and restart guard delayed events and retain reaction until 
   assert.equal(reduceLeviTour(state, { type: 'advance-greeting' }), state)
 })
 
-test('reaction continues through separate Home steps; only Arena entry/final Done completes the dev preview', () => {
+test('Home lessons finish only on Arena Pонятно, without entering Arena or completing the full tour', () => {
   let state = reduceLeviTour(createLeviTourState(false), { type: 'role-selected', reaction: chooseLeviReaction('product_manager') })
   assert.equal(reduceLeviTour(state, { type: 'done' }), state)
   for (const step of ['level-xp', 'energy-streak', 'training', 'arena']) {
@@ -233,17 +236,22 @@ test('reaction continues through separate Home steps; only Arena entry/final Don
     const html = renderToStaticMarkup(guide(state))
     assert.ok(html.includes(`<p>${leviHomeSteps[step].explanation}</p>`))
     assert.ok(html.includes(`<p class="levi-tour__comment">${leviHomeSteps[step].leviComment}</p>`))
-    assert.ok(html.includes('Дальше →'))
+    assert.ok(html.includes(step === 'arena' ? 'Понятно' : 'Дальше →'))
     assert.ok(html.includes('Пропустить экскурсию'))
+    if (step !== 'arena') assert.equal(reduceLeviTour(state, { type: 'done' }), state)
   }
-  state = reduceLeviTour(state, { type: 'arena-entered' })
-  assert.equal(state.status, 'final')
-  const html = renderToStaticMarkup(guide(state))
-  assert.ok(html.includes(leviFinalMessage))
-  assert.ok(html.includes('Готово'))
-  assert.ok(!html.includes('>Дальше →</button>'))
   state = reduceLeviTour(state, { type: 'done' })
   assert.equal(state.status, 'completed')
+  assert.equal(reduceLeviTour(state, { type: 'done' }), state)
+  assert.equal(reduceLeviTour(state, { type: 'arena-entered' }), state)
+  const fullStorage = memory()
+  const homeStore = createLeviTourStore(fullStorage)
+  homeStore.markViewed()
+  assert.equal(fullStorage.data.has(LEVI_TOUR_VERSION_KEY), false)
+  assert.equal(createLeviArenaStore(fullStorage).hasViewed(), false)
+  // The former final preview remains renderable, but is not part of this Home completion path.
+  const final = reduceLeviTour(createLeviTourState(false, true), { type: 'arena-entered' })
+  assert.ok(renderToStaticMarkup(guide(final)).includes(leviFinalMessage))
 })
 
 test('existing users replay at Home without a role reaction; skip and ordinary role changes never restart onboarding', () => {
@@ -428,4 +436,90 @@ test('reaction timer cancels on manual advance/skip/unmount and simultaneous tim
   const restarted = reduceLeviTour(initial, { type: 'restart' })
   const newReaction = reduceLeviTour(restarted, { type: 'role-selected', reaction: initial.reaction })
   assert.equal(reduceLeviTour(newReaction, finish), newReaction)
+})
+
+test('Arena dev slice is independent of Home skip and never writes full-tour or game state', () => {
+  const storage = memory([[LEVI_TOUR_SLICE_KEY, '1'], [LEVI_TOUR_VERSION_KEY, '1'], ['levelup-arena:progression-v1', '{"xp":120}']])
+  const arena = createLeviArenaStore(storage)
+  assert.equal(arena.hasViewed(), false)
+  arena.markViewed()
+  assert.equal(storage.data.get(LEVI_ARENA_SLICE_KEY), '1')
+  assert.equal(storage.data.get(LEVI_TOUR_VERSION_KEY), '1')
+  assert.equal(storage.data.get('levelup-arena:progression-v1'), '{"xp":120}')
+  assert.equal(createLeviArenaStore(storage).hasViewed(), true)
+})
+
+test('Arena lessons preserve the approved explanations and separate Levi comments', () => {
+  assert.deepEqual(Object.keys(leviArenaSteps), ['opponents', 'locked', 'chooseOpponent', 'chooseScenario', 'briefing'])
+  for (const step of Object.keys(leviArenaSteps)) {
+    const html = renderToStaticMarkup(createElement(LeviTour, { greeting: 1, reaction: null, arenaStep: step, onNext() {}, onSkip() {} }))
+    assert.ok(html.includes(`<p>${leviArenaSteps[step].explanation.replaceAll('"', '&quot;')}</p>`) || html.includes(leviArenaSteps[step].explanation))
+    assert.ok(html.includes(leviArenaSteps[step].leviComment.replaceAll('"', '&quot;')))
+    assert.ok(html.includes('levi-tour__comment-row'))
+    assert.equal(html.includes('Далее'), ['opponents', 'locked'].includes(step))
+    assert.equal(html.includes('Понятно'), step === 'briefing')
+  }
+})
+
+test('Arena tour follows real selection, skips unlocked boss and tolerates early clicks', () => {
+  const base = { ready: true, hasLockedBoss: true, selectedOpponent: false, selectedScenario: false }
+  assert.equal(nextLeviArenaStep('opponents', base), 'locked')
+  assert.equal(nextLeviArenaStep('locked', base), 'chooseOpponent')
+  assert.equal(nextLeviArenaStep('opponents', { ...base, hasLockedBoss: false }), 'chooseOpponent')
+  assert.equal(reconcileLeviArenaStep('opponents', { ...base, selectedOpponent: true }), 'chooseScenario')
+  assert.equal(reconcileLeviArenaStep('locked', { ...base, selectedOpponent: true, selectedScenario: true }), 'briefing')
+  assert.equal(reconcileLeviArenaStep('briefing', { ...base, selectedOpponent: true, selectedScenario: false }), 'chooseScenario')
+  assert.equal(nextLeviArenaStep('briefing', { ...base, selectedOpponent: true, selectedScenario: true }), 'completed')
+  assert.equal(reconcileLeviArenaStep('skipped', base), 'skipped')
+  assert.equal(nextLeviArenaStep('chooseOpponent', { ...base, ready: false }), 'chooseOpponent')
+})
+
+test('Arena scenario comment reacts only to a new early opponent selection, not normal choice or replay', () => {
+  for (const step of ['opponents', 'locked']) {
+    assert.equal(isEarlyOpponentSelection(step), true)
+  }
+  assert.equal(isEarlyOpponentSelection('chooseOpponent'), false)
+  assert.equal(isEarlyOpponentSelection('chooseScenario'), false)
+
+  const scenario = { greeting: 1, reaction: null, arenaStep: 'chooseScenario', onNext() {}, onSkip() {} }
+  const early = renderToStaticMarkup(createElement(LeviTour, { ...scenario, arenaComment: earlyOpponentComment }))
+  const ordinary = renderToStaticMarkup(createElement(LeviTour, scenario))
+  assert.ok(early.includes(earlyOpponentComment))
+  assert.ok(!early.includes(leviArenaSteps.chooseScenario.leviComment))
+  assert.ok(ordinary.includes(leviArenaSteps.chooseScenario.leviComment.replaceAll('"', '&quot;')))
+  assert.ok(!ordinary.includes(earlyOpponentComment))
+})
+
+test('Arena spotlight targets real whole cards, reads actual selection and cleans on exit', () => {
+  const card = (disabled = false, pressed = false) => ({ disabled, attributes: new Map([['aria-pressed', String(pressed)]]),
+    getAttribute(key) { return this.attributes.get(key) ?? null }, setAttribute(key, value) { this.attributes.set(key, value) }, removeAttribute(key) { this.attributes.delete(key) },
+    querySelector(selector) { return disabled ? { textContent: selector === '.arena-lock-status' ? 'Откроется на уровне 2' : 'Сначала победите босса «Первый босс»' } : null } })
+  const open = card(false)
+  const locked = card(true)
+  const scenario = card(false)
+  const briefing = card(false)
+  const root = { querySelectorAll(selector) {
+    if (selector === '.arena-opponent-card') return [open, locked]
+    if (selector === '.arena-scenario-card') return [scenario]
+    if (selector === '.arena-selected-brief') return [briefing]
+    return []
+  }, querySelector(selector) {
+    if (selector === '.arena-boss-list') return {}
+    if (selector === '.arena-scenario-card[aria-pressed="true"]') return scenario.getAttribute('aria-pressed') === 'true' ? scenario : null
+    if (selector === '.arena-opponent-card[disabled]') return locked
+    return null
+  } }
+  assert.deepEqual(readLeviArenaSnapshot(root), { ready: true, hasLockedBoss: true, selectedOpponent: false, selectedScenario: false })
+  for (const [step, expected] of [['opponents', open], ['locked', locked], ['chooseOpponent', open], ['chooseScenario', scenario], ['briefing', briefing]]) {
+    const highlighted = highlightLeviArenaTargets(root, step)
+    assert.deepEqual(highlighted.targets, [expected])
+    assert.equal(expected.attributes.get('data-levi-highlighted'), 'true')
+    highlighted.cleanup()
+    assert.equal(expected.attributes.has('data-levi-highlighted'), false)
+  }
+  open.setAttribute('aria-pressed', 'true')
+  scenario.setAttribute('aria-pressed', 'true')
+  assert.equal(readLeviArenaSnapshot(root).selectedOpponent, true)
+  assert.equal(readLeviArenaSnapshot(root).selectedScenario, true)
+  assert.equal(getLeviLockedExplanation(root), leviArenaSteps.locked.explanation)
 })

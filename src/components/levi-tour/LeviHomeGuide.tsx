@@ -110,14 +110,6 @@ export function LeviHomeGuide({ root, step, reaction, final, onNext, onSkip }: P
   }, [root, step, reaction, final])
 
   function next() {
-    if (step === 'arena' && !missing) {
-      const entry = root.current?.querySelector<HTMLButtonElement>('[data-tour="arena-entry"]')
-      if (entry) {
-        entry.focus({ preventScroll: true })
-        entry.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
-        return
-      }
-    }
     onNext()
   }
 
@@ -125,7 +117,6 @@ export function LeviHomeGuide({ root, step, reaction, final, onNext, onSkip }: P
     <div className="levi-home-guide" data-placement={placement} ref={guide} style={{ visibility: 'hidden' }}>
       <LeviTour greeting={1} reaction={reaction} homeStep={step} final={final} onNext={next} onSkip={onSkip} />
       {missing && <p className="levi-home-guide__note" role="status">Элемент сейчас недоступен. Можно продолжить экскурсию.</p>}
-      {step === 'arena' && !missing && <p className="levi-home-guide__note">Для перехода нажмите настоящую кнопку «Открыть арену». «Дальше» переводит к ней фокус.</p>}
       {final && <p className="levi-home-guide__note">Dev-preview финала. Arena Setup пока не подключён; переговоры не запущены.</p>}
     </div>, document.body,
   )

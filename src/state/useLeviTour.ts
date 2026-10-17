@@ -34,7 +34,8 @@ export function reduceLeviTour(state: TourState, event: TourEvent): TourState {
     }
     case 'arena-entered': return state.status === 'home' || state.status === 'reaction'
       ? { ...state, status: 'final' } : state
-    case 'done': return state.status === 'final' ? { ...state, status: 'completed' } : state
+    case 'done': return state.status === 'final' || (state.status === 'home' && state.homeStep === 'arena')
+      ? { ...state, status: 'completed' } : state
     case 'suspend': return { ...state, status: 'inactive', reaction: null }
     case 'skip': return ['active', 'reaction', 'home', 'final'].includes(state.status)
       ? { ...state, status: 'skipped', reaction: null } : state
@@ -54,7 +55,9 @@ export function useLeviTour(store: LeviTourStore = browserLeviTourStore, initial
     [state.status, state.run])
 
   function finish(type: 'done' | 'skip') {
-    if (type === 'done' ? state.status !== 'final' : !['active', 'reaction', 'home', 'final'].includes(state.status)) return
+    if (type === 'done'
+      ? state.status !== 'final' && !(state.status === 'home' && state.homeStep === 'arena')
+      : !['active', 'reaction', 'home', 'final'].includes(state.status)) return
     store.markViewed()
     dispatch({ type })
   }

@@ -1,11 +1,15 @@
 import { Mascot } from '../mascot/Mascot'
 import { leviFinalMessage, leviGreetings, leviHomeSteps, type LeviHomeStep, type LeviRoleReaction } from '../../services/leviTour'
+import { leviArenaSteps, type LeviArenaStep } from '../../services/leviArenaTour'
 import './levi-tour.css'
 
 type LeviTourProps = {
   greeting: 0 | 1
   reaction: LeviRoleReaction | null
   homeStep?: LeviHomeStep
+  arenaStep?: LeviArenaStep
+  arenaExplanation?: string
+  arenaComment?: string
   final?: boolean
   onNext: () => void
   onSkip: () => void
@@ -57,19 +61,24 @@ function StepHeading({ icon, title }: { icon: HeadingIcon; title: string }) {
   </div>
 }
 
-export function LeviTour({ greeting, reaction, homeStep, final = false, onNext, onSkip }: LeviTourProps) {
-  const messageKey = final ? 'final' : homeStep ?? (reaction ? `${reaction.roleId}:${reaction.index}` : `greeting-${greeting}`)
+export function LeviTour({ greeting, reaction, homeStep, arenaStep, arenaExplanation, arenaComment, final = false, onNext, onSkip }: LeviTourProps) {
+  const messageKey = arenaStep ? `arena-${arenaStep}` : final ? 'final' : homeStep ?? (reaction ? `${reaction.roleId}:${reaction.index}` : `greeting-${greeting}`)
   const text = final ? leviFinalMessage : reaction?.text ?? leviGreetings[greeting]
   const lesson = homeStep ? leviHomeSteps[homeStep] : null
+  const arenaLesson = arenaStep ? leviArenaSteps[arenaStep] : null
   const [roleExplanation, roleComment] = leviGreetings[1].split('\n\n')
-  const showNext = final || Boolean(reaction) || Boolean(homeStep) || greeting === 0
+  const showNext = Boolean(arenaStep && ['opponents', 'locked', 'briefing'].includes(arenaStep)) || final || Boolean(reaction) || Boolean(homeStep) || greeting === 0
   return (
     <section className="levi-tour" aria-label="Экскурсия с Леви">
-      <Mascot key={messageKey} state={final ? 'happy' : homeStep ? 'point' : reaction?.emotion ?? (greeting === 0 ? 'judge' : 'point')} size={96} label="Леви" />
+      <Mascot key={messageKey} state={arenaStep === 'briefing' || final ? 'happy' : arenaStep || homeStep ? 'point' : reaction?.emotion ?? (greeting === 0 ? 'judge' : 'point')} size={96} label="Леви" />
       <div className="levi-tour__bubble">
         <div role="status" aria-atomic="true">
           <div className="levi-tour__message" key={messageKey}>
-            {lesson && homeStep ? <>
+            {arenaLesson ? <>
+              <StepHeading icon="arena" title={arenaLesson.title} />
+              <p>{arenaExplanation ?? arenaLesson.explanation}</p>
+              <LeviComment text={arenaComment ?? arenaLesson.leviComment} emotion={arenaStep === 'briefing' ? 'happy' : 'neutral'} />
+            </> : lesson && homeStep ? <>
               <StepHeading icon={homeStep} title={lessonPresentation[homeStep].title} />
               <p>{lesson.explanation}</p>
               <LeviComment text={lesson.leviComment} emotion={lessonPresentation[homeStep].emotion} />
@@ -89,7 +98,7 @@ export function LeviTour({ greeting, reaction, homeStep, final = false, onNext, 
         <div className="levi-tour__actions levi-tour__actions--greeting">
           <button className="text-button" type="button" onClick={onSkip}>Пропустить экскурсию</button>
           {showNext &&
-            <button className="primary-button levi-tour__next" type="button" onClick={onNext}>{final ? 'Готово' : 'Дальше →'}</button>}
+            <button className="primary-button levi-tour__next" type="button" onClick={onNext}>{arenaStep === 'briefing' || homeStep === 'arena' ? 'Понятно' : final ? 'Готово' : arenaStep ? 'Далее' : 'Дальше →'}</button>}
         </div>
       </div>
     </section>
