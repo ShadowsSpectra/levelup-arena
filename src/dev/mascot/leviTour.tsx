@@ -14,13 +14,15 @@ import { appStorage } from '../../services/storage'
 import { useLeviTour } from '../../state/useLeviTour'
 import { startLeviRoleHighlight } from '../../services/leviTourHighlight'
 import { createLeviArenaStore, earlyOpponentComment, isEarlyOpponentSelection, nextLeviArenaStep, readLeviArenaSnapshot, reconcileLeviArenaStep, type LeviArenaSnapshot, type LeviArenaStatus } from '../../services/leviArenaTour'
+import { createLeviFinishHintStore } from './leviFinishHintState'
+import { LeviFinishHint } from './LeviFinishHint'
 import '../../styles/global.css'
 import './leviTour.css'
 
-type Fixture = { id: number; label: string; roleId: RoleId | null; progression: ProgressionState; store: LeviTourStore; arenaStore: ReturnType<typeof createLeviArenaStore> }
+type Fixture = { id: number; label: string; roleId: RoleId | null; progression: ProgressionState; store: LeviTourStore; arenaStore: ReturnType<typeof createLeviArenaStore>; finishHintStore: ReturnType<typeof createLeviFinishHintStore> }
 
 function previewStores(storage: { getItem: (key: string) => string | null; setItem: (key: string, value: string) => void }) {
-  return { store: createLeviTourStore(storage), arenaStore: createLeviArenaStore(storage) }
+  return { store: createLeviTourStore(storage), arenaStore: createLeviArenaStore(storage), finishHintStore: createLeviFinishHintStore(storage) }
 }
 
 function createMemoryPreview(existing: boolean): Omit<Fixture, 'id'> {
@@ -41,8 +43,8 @@ function createMemoryPreview(existing: boolean): Omit<Fixture, 'id'> {
 }
 
 function createBrowserPreview(): Omit<Fixture, 'id'> {
-  const arenaStore = createLeviArenaStore({ getItem: (key) => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) })
-  return { label: 'Данные браузера · только чтение игрового снимка', roleId: appStorage.getSelectedRole(), progression: appStorage.getProgression(), store: browserLeviTourStore, arenaStore }
+  const storage = { getItem: (key: string) => window.localStorage.getItem(key), setItem: (key: string, value: string) => window.localStorage.setItem(key, value) }
+  return { label: 'Данные браузера · только чтение игрового снимка', roleId: appStorage.getSelectedRole(), progression: appStorage.getProgression(), store: browserLeviTourStore, arenaStore: createLeviArenaStore(storage), finishHintStore: createLeviFinishHintStore(storage) }
 }
 
 function TourPreview({ fixture }: { fixture: Fixture }) {
@@ -155,6 +157,7 @@ function TourPreview({ fixture }: { fixture: Fixture }) {
             if (next === 'completed') finishArena('completed')
             else setArenaStep(next)
           }} onSkip={() => finishArena('skipped')} />}
+      {screen === 'arena' && <LeviFinishHint root={root} store={fixture.finishHintStore} />}
       <LeviSpotlight root={root} />
     </div>
   )

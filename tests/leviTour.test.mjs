@@ -19,11 +19,100 @@ const { createInitialProgression, getRoleProgress } = await vite.ssrLoadModule('
 const { LEVI_ARENA_SLICE_KEY, createLeviArenaStore, leviArenaSteps, reconcileLeviArenaStep, nextLeviArenaStep,
   readLeviArenaSnapshot, highlightLeviArenaTargets, getLeviLockedExplanation,
   earlyOpponentComment, isEarlyOpponentSelection } = await vite.ssrLoadModule('/src/services/leviArenaTour.ts')
+const { LEVI_FINISH_HINT_KEY, createLeviFinishHintStore, availableFinishButton, observeFinishButton, leviFinishLesson } = await vite.ssrLoadModule('/src/dev/mascot/leviFinishHintState.ts')
+const { NegotiationView } = await vite.ssrLoadModule('/src/components/arena/NegotiationView.tsx')
+const { createArenaSession, addPlayerMessage, addOpponentReply, endArenaSession } = await vite.ssrLoadModule('/src/services/arenaSession.ts')
 
 function memory(entries = []) {
   const data = new Map(entries)
   return { data, getItem: (key) => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value) } }
 }
+
+test('finish hint follows the actual Finish button through opening, request and successful exchange', () => {
+  const render = (session, isOpening = false) => renderToStaticMarkup(createElement(NegotiationView, {
+    character: { name: 'Оппонент', role: 'Manager' }, scenario: { title: 'Тест', maxTurns: 10 },
+    session, isOpening, replyError: null, async onSend() { return true }, onFinish() {}, onOpenAISettings() {},
+  }))
+  const start = createArenaSession('scenario', 'character', 'Обсудим')
+  const pending = addPlayerMessage(start, 'Вопрос', 10)
+  const complete = addOpponentReply(pending, 'Ответ', 10)
+  const button = {
+    isConnected: true, disabled: true, matches: () => false, closest: () => null,
+    getClientRects: () => [1], ownerDocument: { defaultView: { getComputedStyle: () => ({ visibility: 'visible', display: 'block' }) } },
+  }
+  const root = { querySelector: (selector) => {
+    assert.equal(selector, '.arena-dialogue .arena-dialogue-heading > button.secondary-action-button')
+    return button
+  } }
+  for (const html of [render(start, true), render(start), render(pending)]) {
+    assert.match(html, /<button class="secondary-action-button" type="button" disabled="">Завершить переговоры/)
+    assert.equal(availableFinishButton(root), null)
+  }
+  assert.match(render(complete), /<button class="secondary-action-button" type="button">Завершить переговоры/)
+  button.disabled = false
+  assert.equal(availableFinishButton(root), button)
+  assert.equal(endArenaSession(complete).status, 'completed')
+  button.getClientRects = () => []
+  assert.equal(availableFinishButton(root), null)
+  button.getClientRects = () => [1]
+  button.closest = () => ({})
+  assert.equal(availableFinishButton(root), null)
+  button.closest = () => null
+  button.isConnected = false
+  assert.equal(availableFinishButton(root), null)
+})
+
+test('finish hint uses a separate once-only dev marker and the existing lesson presentation', () => {
+  const storage = memory([[LEVI_TOUR_VERSION_KEY, '1'], [LEVI_ARENA_SLICE_KEY, '1']])
+  const store = createLeviFinishHintStore(storage)
+  assert.equal(store.hasViewed(), false)
+  const html = renderToStaticMarkup(createElement(LeviTour, { greeting: 1, reaction: null, standaloneLesson: leviFinishLesson, onNext() {}, onSkip() {} }))
+  for (const text of Object.values(leviFinishLesson)) assert.ok(html.includes(text))
+  assert.match(html, />Понятно<\/button>/)
+  assert.doesNotMatch(html, /Пропустить экскурсию/)
+  assert.equal(storage.data.has(LEVI_FINISH_HINT_KEY), false)
+  store.markViewed()
+  assert.equal(storage.data.get(LEVI_FINISH_HINT_KEY), '1')
+  assert.equal(createLeviFinishHintStore(storage).hasViewed(), true)
+  assert.equal(storage.data.get(LEVI_TOUR_VERSION_KEY), '1')
+  assert.equal(storage.data.get(LEVI_ARENA_SLICE_KEY), '1')
+  const blocked = createLeviFinishHintStore({ getItem() { throw Error('blocked') }, setItem() { throw Error('blocked') } })
+  blocked.markViewed()
+  assert.equal(blocked.hasViewed(), true)
+})
+
+test('finish availability observer follows real button changes and disconnects when leaving the dialogue', () => {
+  const previousObserver = globalThis.MutationObserver
+  const previousWindow = globalThis.window
+  let notify, disconnected = false, listener
+  globalThis.MutationObserver = class {
+    constructor(callback) { notify = callback }
+    observe(_root, options) { assert.ok(options.attributeFilter.includes('disabled')) }
+    disconnect() { disconnected = true }
+  }
+  globalThis.window = { addEventListener(_name, fn) { listener = fn }, removeEventListener(_name, fn) { assert.equal(fn, listener); listener = null } }
+  try {
+    const button = { isConnected: true, disabled: true, matches: () => false, closest: () => null,
+      getClientRects: () => [1], ownerDocument: { defaultView: { getComputedStyle: () => ({ visibility: 'visible', display: 'block' }) } } }
+    let present = true
+    const root = { querySelector: () => present ? button : null }
+    const values = []
+    const stop = observeFinishButton(root, (value) => values.push(value))
+    assert.equal(values.at(-1), null)
+    button.disabled = false
+    notify()
+    assert.equal(values.at(-1), button)
+    present = false
+    notify()
+    assert.equal(values.at(-1), null)
+    stop()
+    assert.equal(disconnected, true)
+    assert.equal(listener, null)
+  } finally {
+    globalThis.MutationObserver = previousObserver
+    globalThis.window = previousWindow
+  }
+})
 
 test('spotlight cuts out real target geometry including focus/glow space, without mutating it', () => {
   const button = Object.freeze({ left: 120, top: 340, width: 160, height: 46 })
