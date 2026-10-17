@@ -26,7 +26,7 @@ export function AppHeader({ role, roleProgress, energy, streak, onChangeRole }: 
       </div>
 
       <div className="player-stats" aria-label="Прогресс роли">
-        <div className="level-stat">
+        <div className="level-stat" data-tour="level-xp">
           <span>Level {roleProgress.level}</span>
           <div
             className="xp-track"
@@ -42,10 +42,10 @@ export function AppHeader({ role, roleProgress, energy, streak, onChangeRole }: 
               : `${roleProgress.xp}/${roleProgress.nextLevelXp} XP`}
           </span>
         </div>
-        <span className="stat-item" title="Energy">
+        <span className="stat-item" title="Energy" data-tour="energy">
           <EnergyIcon /> {energy}/{energyRules.maximum}
         </span>
-        <span className="stat-item" title="Streak">
+        <span className="stat-item" title="Streak" data-tour="streak">
           <StreakIcon /> {streak}
         </span>
       </div>

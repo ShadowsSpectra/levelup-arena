@@ -5,11 +5,38 @@ export const LEVI_TOUR_VERSION_KEY = 'levelup-arena:levi-tour-version'
 // Temporary dev slice only. Never certify the future full tour from this preview.
 export const LEVI_TOUR_SLICE_KEY = 'levelup-arena:levi-tour-dev-role-slice'
 export const LEVI_GREETING_DELAY_MS = 4500
+export const LEVI_REACTION_DELAY_MS = 4500
 
 export const leviGreetings = [
-  'О, новый переговорщик. Надеюсь, ты хотя бы знаешь, что такое компромисс',
-  'Ладно, проверим. Для начала выбери роль, в которой хочешь потренироваться.\n\nОбещаю не осуждать. Пока что',
+  'О, новый переговорщик. Надеюсь, ты хотя бы знаешь, что такое компромисс.',
+  'Ладно, проверим. Для начала выбери роль, в которой хочешь потренироваться.\n\nОбещаю не осуждать. Пока что.',
 ] as const
+
+export const leviHomeSteps = {
+  'level-xp': {
+    explanation: 'Это твой уровень и XP. Чем больше практикуешься, тем заметнее прогресс',
+    leviComment: 'Только не перепутай опыт с самоуверенностью',
+    targets: ['level-xp'], placement: 'stats',
+  },
+  'energy-streak': {
+    explanation: 'Энергия нужна для практики, а Streak показывает, насколько регулярно ты возвращаешься',
+    leviComment: 'Я бы тоже тренировался каждый день. Но у меня лапки',
+    targets: ['energy', 'streak'], placement: 'stats',
+  },
+  training: {
+    explanation: 'Здесь можно потренироваться перед серьёзными переговорами',
+    leviComment: 'Рекомендую. Хотя смотреть, как ты импровизируешь, тоже заманчиво',
+    targets: ['training'], placement: 'training',
+  },
+  arena: {
+    explanation: 'А здесь начинается самое интересное. Выбираешь оппонента, ведёшь переговоры и получаешь разбор',
+    leviComment: 'Не переживай, проигрывать тоже полезно. Мне так говорили',
+    targets: ['arena'], placement: 'arena',
+  },
+} as const
+export type LeviHomeStep = keyof typeof leviHomeSteps
+export const leviHomeStepOrder: readonly LeviHomeStep[] = ['level-xp', 'energy-streak', 'training', 'arena']
+export const leviFinalMessage = 'Ну вот, теперь ты знаешь, что здесь к чему. Дальше сам. Я буду рядом. Осуждать исключительно по делу'
 
 type Reaction = { text: string; emotion: 'judge' | 'happy' }
 export const leviRoleReactions: Record<RoleId, readonly Reaction[]> = {
@@ -41,6 +68,13 @@ export function chooseLeviReaction(roleId: RoleId, previousIndex?: number, rando
 export function scheduleLeviGreeting(advance: () => void) {
   let active = true
   const timer = setTimeout(() => { if (active) advance() }, LEVI_GREETING_DELAY_MS)
+  return () => { active = false; clearTimeout(timer) }
+}
+
+export function scheduleLeviReaction(status: string, advance: () => void) {
+  if (status !== 'reaction') return
+  let active = true
+  const timer = setTimeout(() => { if (active) advance() }, LEVI_REACTION_DELAY_MS)
   return () => { active = false; clearTimeout(timer) }
 }
 

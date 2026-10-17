@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { AppHeader } from '../components/AppHeader'
 import type { Role } from '../config/roles'
 import { demoLeaderboard } from '../content/demoVision'
@@ -12,6 +13,7 @@ type RoleHomePageProps = {
   onOpenTraining: () => void
   onOpenArena: () => void
   onOpenAISettings: () => void
+  tourSlot?: { position: 'intro' | 'stats' | 'training' | 'arena'; content: ReactNode }
 }
 
 export function RoleHomePage({
@@ -23,6 +25,7 @@ export function RoleHomePage({
   onOpenTraining,
   onOpenArena,
   onOpenAISettings,
+  tourSlot,
 }: RoleHomePageProps) {
   const bestScore = Object.values(roleProgress.bosses).reduce<number | null>(
     (best, boss) => boss.bestScore === null ? best : Math.max(best ?? 0, boss.bestScore),
@@ -38,6 +41,7 @@ export function RoleHomePage({
         streak={streak}
         onChangeRole={onChangeRole}
       />
+      {tourSlot?.position === 'stats' && <div className="levi-home-stats-slot">{tourSlot.content}</div>}
 
       <main className="home-content">
         <section className="home-intro">
@@ -45,25 +49,28 @@ export function RoleHomePage({
           <h1>Готовы к переговорам?</h1>
           <p>{role.description}</p>
         </section>
+        {tourSlot?.position === 'intro' && tourSlot.content}
 
         <section className="activity-list" aria-label="Режимы практики">
-          <article className="activity activity-available">
+          <article className="activity activity-available" data-tour="arena">
             <div>
               <span className="activity-number">01</span>
               <h2>Arena</h2>
               <p>Применяйте переговорные навыки в диалоге с оппонентом.</p>
             </div>
-            <button className="primary-button" type="button" onClick={onOpenArena}>
+            {tourSlot?.position === 'arena' && tourSlot.content}
+            <button className="primary-button" type="button" onClick={onOpenArena} data-tour="arena-entry">
               Открыть арену
             </button>
           </article>
 
-          <article className="activity activity-available">
+          <article className="activity activity-available" data-tour="training">
             <div>
               <span className="activity-number">02</span>
               <h2>Training</h2>
               <p>Тренировка отдельных навыков с объяснением ответов.</p>
             </div>
+            {tourSlot?.position === 'training' && tourSlot.content}
             <button className="primary-button" type="button" onClick={onOpenTraining}>
               Начать тренировку
             </button>
