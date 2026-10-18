@@ -65,6 +65,10 @@ export function LeviHomeGuide({ root, step, reaction, final, onNext, onSkip }: P
           node.style.top = `${window.scrollY + introRect.top}px`
           node.style.left = `${position.left}px`
         } else {
+          // The portal stays mounted after the role reaction. Remove its temporary
+          // intro-height constraint before measuring the full lesson bubble.
+          node.style.maxHeight = ''
+          node.style.overflowY = ''
           const position = getLeviHomeGuidePosition(anchor.getBoundingClientRect(), node.getBoundingClientRect().width,
             document.documentElement.clientWidth, window.scrollY)
           node.style.top = `${position.top}px`

@@ -1,9 +1,13 @@
 import { ArenaPage } from './pages/ArenaPage'
 import { LeviOnboarding } from './components/levi-tour/LeviOnboarding'
+import { LeviHomeGuide } from './components/levi-tour/LeviHomeGuide'
+import { LeviSpotlight } from './components/levi-tour/LeviSpotlight'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
 import { TrainingPage } from './pages/TrainingPage'
 import { useAppState } from './state/useAppState'
+import { useLeviHomeGuide } from './state/useLeviHomeGuide'
+import './components/levi-tour/levi-home-guide.css'
 
 export function App() {
   const [aiSettingsOpen, setAISettingsOpen] = useState(false)
@@ -23,9 +27,14 @@ export function App() {
     completeArenaEvaluation,
     openHome,
   } = useAppState()
+  const homeRoot = useRef<HTMLDivElement>(null)
+  const homeGuide = useLeviHomeGuide(screen === 'home')
 
   if (screen === 'onboarding') {
-    return <LeviOnboarding selectedRoleId={selectedRole?.id ?? null} onSelectRole={selectRole} onContinue={continueOnboarding} />
+    return <LeviOnboarding selectedRoleId={selectedRole?.id ?? null} onSelectRole={(roleId) => {
+      homeGuide.selectOnboardingRole(roleId)
+      selectRole(roleId)
+    }} onContinue={continueOnboarding} onSkip={homeGuide.finish} />
   }
 
   if (screen === 'role-selection') {
@@ -73,7 +82,7 @@ export function App() {
   }
 
   return (
-    <>
+    <div className="levi-home-root" ref={homeRoot}>
     <RoleHomePage
       role={selectedRole}
       roleProgress={roleProgress}
@@ -84,10 +93,15 @@ export function App() {
       onOpenArena={openArena}
       onOpenAISettings={() => setAISettingsOpen(true)}
     />
+    {homeGuide.status !== 'completed' && <>
+      <LeviHomeGuide root={homeRoot} step={homeGuide.status === 'home' ? homeGuide.step : undefined}
+        reaction={homeGuide.reaction} final={false} onNext={homeGuide.next} onSkip={homeGuide.finish} />
+      <LeviSpotlight root={homeRoot} />
+    </>}
     {aiSettingsOpen && <AISettingsDialog onClose={() => setAISettingsOpen(false)}
       onSaved={() => setAISettingsVersion((version) => version + 1)} />}
-    </>
+    </div>
   )
 }
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { AISettingsDialog } from './components/AISettingsDialog'

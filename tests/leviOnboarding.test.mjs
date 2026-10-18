@@ -85,6 +85,6 @@ test('real selection controls keep their role handler and continue is a separate
 test('production entry does not import dev preview or the legacy onboarding page', async () => {
   const app = await readFile(new URL('../src/App.tsx', import.meta.url), 'utf8')
   const onboarding = await readFile(new URL('../src/components/levi-tour/LeviOnboarding.tsx', import.meta.url), 'utf8')
-  assert.doesNotMatch(app + onboarding, /src\/dev|\.\.\/dev|OnboardingPage|LeviHomeGuide|LeviArenaGuide/)
-  assert.match(onboarding, /onSkip=\{\(\) => setSkipped\(true\)\}/)
+  assert.doesNotMatch(app + onboarding, /src\/dev|\.\.\/dev|OnboardingPage|LeviArenaGuide/)
+  assert.match(onboarding, /setSkipped\(true\); onSkip\?\.\(\)/)
 })

@@ -7,9 +7,9 @@ import { LeviSpotlight } from './LeviSpotlight'
 import { LeviTour } from './LeviTour'
 import './levi-onboarding.css'
 
-type Props = { selectedRoleId: RoleId | null; onSelectRole: (roleId: RoleId) => void; onContinue: () => void }
+type Props = { selectedRoleId: RoleId | null; onSelectRole: (roleId: RoleId) => void; onContinue: () => void; onSkip?: () => void }
 
-export function LeviOnboarding({ selectedRoleId, onSelectRole, onContinue }: Props) {
+export function LeviOnboarding({ selectedRoleId, onSelectRole, onContinue, onSkip }: Props) {
   const [greeting, setGreeting] = useState<0 | 1>(0)
   const [skipped, setSkipped] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -30,7 +30,7 @@ export function LeviOnboarding({ selectedRoleId, onSelectRole, onContinue }: Pro
       {!skipped && <div className="levi-onboarding__greetings">
         {([0, 1] as const).map((step) => <div className="levi-onboarding__greeting" key={step}
           aria-hidden={greeting !== step} inert={greeting !== step}>
-          <LeviTour greeting={step} reaction={null} onNext={() => setGreeting(1)} onSkip={() => setSkipped(true)} />
+          <LeviTour greeting={step} reaction={null} onNext={() => setGreeting(1)} onSkip={() => { setSkipped(true); onSkip?.() }} />
         </div>)}
       </div>}
     </RoleSelectionPage>
