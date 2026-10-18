@@ -1,5 +1,4 @@
 .levi-commentator { position: fixed; z-index: 20; right: max(16px, env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); display: flex; align-items: center; width: min(400px, calc(100vw - 32px)); max-height: calc(100dvh - 32px - env(safe-area-inset-bottom)); pointer-events: none; }
-.levi-commentator[data-covers-action] { visibility: hidden; }
 .levi-commentator__bubble { position: relative; width: 100%; min-width: 0; max-height: inherit; overflow-y: auto; box-sizing: border-box; padding: 14px 16px; border: 1px solid #cedaf4; border-radius: 20px; background: #f7f9ff; color: #172036; box-shadow: 0 6px 20px rgb(34 51 100 / 9%); pointer-events: auto; }
 .levi-commentator__bubble p { margin: 0 0 8px; line-height: 1.45; overflow-wrap: anywhere; }
 .levi-commentator__bubble button { min-height: 36px; }

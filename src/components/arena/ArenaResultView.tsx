@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { LeviResultCommentator } from '../levi-tour/LeviResultCommentator'
 import { BalanceIcon, CheckCircleIcon, DialogueIcon, GrowthIcon, InitiativeIcon, LightbulbIcon, SearchIcon, SwitchIcon } from '../HeaderIcons'
 import { getRoleById } from '../../config/roles'
 import type { ArenaEvaluationState } from '../../state/useArenaFlow'
@@ -52,6 +53,7 @@ type ArenaResultViewProps = {
   onTryAgain: () => void
   onBackToSelection: () => void
   onHome: () => void
+  showLeviCommentator?: boolean
 }
 
 type ArenaTranscriptViewProps = Pick<ArenaResultViewProps, 'character' | 'scenario' | 'session'> & {
@@ -82,9 +84,10 @@ export function ArenaTranscriptView({ character, scenario, session, onBack }: Ar
 }
 
 export function ArenaResultView({ character, scenario, session, evaluation, onRetryEvaluation, onOpenAISettings,
-  onTryAgain, onBackToSelection, onHome }: ArenaResultViewProps) {
+  onTryAgain, onBackToSelection, onHome, showLeviCommentator = true }: ArenaResultViewProps) {
   const [isViewingTranscript, setIsViewingTranscript] = useState(false)
   const [shareNotice, setShareNotice] = useState('')
+  const resultRoot = useRef<HTMLElement>(null)
 
   async function shareResult() {
     if (evaluation.status !== 'success') return
@@ -113,7 +116,9 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
   }
 
   return (
-    <section className="arena-result" aria-labelledby="arena-result-title">
+    <section className="arena-result" aria-labelledby="arena-result-title" ref={resultRoot}>
+      {showLeviCommentator && evaluation.status === 'success' &&
+        <LeviResultCommentator key={session.id} root={resultRoot} sessionId={session.id} result={evaluation.result} />}
       <span className="section-kicker">Arena · Результат</span>
       <h1 id="arena-result-title">Переговоры завершены</h1>
       <div className="arena-result-meta">

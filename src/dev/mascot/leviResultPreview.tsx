@@ -96,6 +96,7 @@ function ResultPreview() {
       {shown?.sessionId === current.id && <LeviCommentator key={`comment-${current.id}`} text={shown.comment.text} emotion={shown.comment.emotion}
         onDismiss={() => setShown(null)} />}
       <ArenaResultView key={session.id} character={character} scenario={scenario} session={session}
+        showLeviCommentator={false}
         evaluation={{ status: 'success', result: evaluation, award: { xpEarned: evaluation.outcome.status === 'SUCCESS' ? 50 : 0, bossDefeated: evaluation.outcome.bossDefeated } }}
         onRetryEvaluation={() => {}} onOpenAISettings={() => {}} onTryAgain={() => newResult(current.selectedCase)}
         onBackToSelection={() => setNotice('В dev-preview выбор оппонента не запускается.')}
