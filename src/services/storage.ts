@@ -7,6 +7,7 @@ const storageKeys = {
   leviOnboardingVersion: 'levelup-arena:levi-onboarding-version',
   leviHomeGuideVersion: 'levelup-arena:levi-home-guide-version',
   leviArenaGuideVersion: 'levelup-arena:levi-arena-guide-version',
+  leviFinishHintVersion: 'levelup-arena:levi-finish-hint-version',
   selectedRole: 'levelup-arena:selected-role',
   progression: 'levelup-arena:progression-v1',
 } as const
@@ -105,6 +106,16 @@ function write(key: string, value: string) {
 }
 
 export const appStorage = {
+  hasViewedLeviFinishHint() {
+    try { return window.localStorage.getItem(storageKeys.leviFinishHintVersion) === '1' }
+    catch { return true }
+  },
+
+  markLeviFinishHintViewed() {
+    try { window.localStorage.setItem(storageKeys.leviFinishHintVersion, '1'); return true }
+    catch { return false }
+  },
+
   hasCompletedLeviArenaGuide() {
     const version = Number(read(storageKeys.leviArenaGuideVersion))
     return Number.isSafeInteger(version) && version >= 1

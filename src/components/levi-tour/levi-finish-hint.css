@@ -1,0 +1,8 @@
+.levi-home-guide.levi-finish-hint {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  width: min(580px, calc(100vw - 24px));
+  max-height: none;
+  overflow: visible;
+}

@@ -1,13 +1,14 @@
 import { StrictMode, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { NegotiationView } from '../../components/arena/NegotiationView'
-import { LeviSpotlight } from '../../components/levi-tour/LeviSpotlight'
-import { LeviFinishHint } from './LeviFinishHint'
+import { LeviFinishHint } from '../../components/levi-tour/LeviFinishHint'
 import { createLeviFinishHintStore } from './leviFinishHintState'
 import { addOpponentReply, addPlayerMessage, createArenaSession } from '../../services/arenaSession'
 import type { PublicCharacter, PublicScenario } from '../../types/arena'
 import '../../styles/global.css'
 import './leviTour.css'
+import '../../components/levi-tour/levi-home-guide.css'
+import '../../components/levi-tour/levi-arena-guide.css'
 
 const character: PublicCharacter = {
   id: 'preview-opponent', name: 'Алексей', role: 'Tech Lead', difficulty: 1,
@@ -30,11 +31,12 @@ function FinishPreview() {
   const root = useRef<HTMLDivElement>(null)
   const [store] = useState(() => {
     const data = new Map<string, string>()
-    return createLeviFinishHintStore({ getItem: (key) => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value) } })
+    const devStore = createLeviFinishHintStore({ getItem: (key) => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value) } })
+    return { hasViewed: devStore.hasViewed, markViewed: () => { devStore.markViewed(); return true } }
   })
   const [session, setSession] = useState(completedExchange)
   const [open, setOpen] = useState(true)
-  return <div className="levi-tour-preview" ref={root}>
+  return <div className="levi-tour-preview levi-arena-root" ref={root}>
     <aside className="levi-tour-preview__tools" aria-label="Тест подсказки">
       <strong>Dev-preview · первый успешный обмен без AI</strong>
       <p>Тестовый диалог и отметка просмотра существуют только в памяти этой страницы.</p>
@@ -51,7 +53,6 @@ function FinishPreview() {
         onSend={async () => false} onFinish={() => setOpen(false)} onOpenAISettings={() => {}} />
     </main></div>}
     <LeviFinishHint root={root} store={store} />
-    <LeviSpotlight root={root} />
   </div>
 }
 

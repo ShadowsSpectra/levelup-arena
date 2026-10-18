@@ -2,6 +2,7 @@ import { AppHeader } from '../components/AppHeader'
 import { CommunicationIcon, GoalIcon, KnownInfoIcon, LockIcon, PressureIcon } from '../components/HeaderIcons'
 import { NegotiationView } from '../components/arena/NegotiationView'
 import { ArenaResultView } from '../components/arena/ArenaResultView'
+import { LeviFinishHint } from '../components/levi-tour/LeviFinishHint'
 import type { Role } from '../config/roles'
 import { localCharacterSource, localScenarioSource } from '../content/arenaSources'
 import { getCharacterPressureLabel, getCharacterStyleLabel, getDifficultyLabel, getDifficultyStars } from '../services/characterProfile'
@@ -39,6 +40,7 @@ export function scrollToArenaSection(
 export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
   onOpenAISettings, aiSettingsVersion, selectionOverlay }: ArenaPageProps) {
   const [aiStatus, setAIStatus] = useState<AIStatus>('unavailable')
+  const negotiationRoot = useRef<HTMLDivElement>(null)
   const scenarioSectionRef = useRef<HTMLElement>(null)
   const scenarioBriefRef = useRef<HTMLDivElement>(null)
   const opponentService = useMemo(() => createBrowserOpponentService(), [])
@@ -208,9 +210,12 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
         )}
 
         {arena.step === 'negotiation' && arena.selected && arena.session && (
+          <div className="levi-arena-root" ref={negotiationRoot}>
           <NegotiationView character={arena.selected.character} scenario={arena.selected.scenario}
             session={arena.session} isOpening={arena.isOpening} replyError={arena.replyError}
             onSend={arena.send} onFinish={arena.finish} onOpenAISettings={onOpenAISettings} />
+          {!arena.replyError && <LeviFinishHint root={negotiationRoot} />}
+          </div>
         )}
 
         {arena.step === 'result' && arena.selected && arena.session && (
