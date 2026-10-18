@@ -1,0 +1,9 @@
+.levi-arena-root [data-levi-highlighted='true'] {
+  outline: 3px solid #445ccc;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px rgb(68 92 204 / 12%), 0 0 22px rgb(68 92 204 / 18%);
+  animation: levi-home-target-in 650ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .levi-arena-root [data-levi-highlighted='true'] { animation: none; }
+}

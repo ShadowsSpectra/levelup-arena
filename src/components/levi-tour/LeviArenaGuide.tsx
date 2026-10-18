@@ -8,11 +8,23 @@ type Props = {
   root: RefObject<HTMLDivElement | null>
   step: LeviArenaStep
   comment?: string
+  keepInViewport?: boolean
   onNext: () => void
   onSkip: () => void
 }
 
-export function LeviArenaGuide({ root, step, comment, onNext, onSkip }: Props) {
+export function getArenaGuideViewportTop(anchor: Pick<DOMRect, 'top' | 'bottom'>, height: number,
+  viewportHeight: number, scrollY: number) {
+  const margin = 16
+  const below = anchor.bottom + margin
+  const above = anchor.top - height - margin
+  const top = below >= margin && below + height <= viewportHeight - margin ? below
+    : above >= margin && above + height <= viewportHeight - margin ? above
+      : Math.max(margin, viewportHeight - height - margin)
+  return scrollY + top
+}
+
+export function LeviArenaGuide({ root, step, comment, keepInViewport = false, onNext, onSkip }: Props) {
   const guide = useRef<HTMLDivElement>(null)
   const explanation = step === 'locked' && root.current ? getLeviLockedExplanation(root.current) : undefined
 
@@ -38,7 +50,10 @@ export function LeviArenaGuide({ root, step, comment, onNext, onSkip }: Props) {
           const last = targets[targets.length - 1].getBoundingClientRect()
           const position = getLeviHomeGuidePosition(last, node!.getBoundingClientRect().width,
             document.documentElement.clientWidth, window.scrollY)
-          node!.style.top = `${position.top}px`
+          const height = node!.getBoundingClientRect().height
+          node!.style.top = `${keepInViewport
+            ? getArenaGuideViewportTop(last, height, window.visualViewport?.height ?? window.innerHeight, window.scrollY)
+            : position.top}px`
           node!.style.left = `${position.left}px`
         }
         node!.style.visibility = 'visible'
@@ -58,6 +73,7 @@ export function LeviArenaGuide({ root, step, comment, onNext, onSkip }: Props) {
     resize.observe(node)
     targets.forEach((target) => resize.observe(target))
     window.addEventListener('resize', place)
+    if (keepInViewport) window.addEventListener('scroll', place, { passive: true })
     window.visualViewport?.addEventListener('resize', place)
     place()
     return () => {
@@ -66,10 +82,11 @@ export function LeviArenaGuide({ root, step, comment, onNext, onSkip }: Props) {
       cancelAnimationFrame(frame)
       resize.disconnect()
       window.removeEventListener('resize', place)
+      if (keepInViewport) window.removeEventListener('scroll', place)
       window.visualViewport?.removeEventListener('resize', place)
       cleanup()
     }
-  }, [root, step])
+  }, [root, step, keepInViewport])
 
   return createPortal(
     <div className="levi-home-guide levi-arena-guide" ref={guide} style={{ visibility: 'hidden' }}>

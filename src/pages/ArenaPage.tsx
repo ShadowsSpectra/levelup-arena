@@ -7,7 +7,7 @@ import { localCharacterSource, localScenarioSource } from '../content/arenaSourc
 import { getCharacterPressureLabel, getCharacterStyleLabel, getDifficultyLabel, getDifficultyStars } from '../services/characterProfile'
 import { createBrowserOpponentService, getAIStatus, type AIStatus } from '../services/arenaOpponentGateway'
 import { createBrowserEvaluatorService } from '../services/evaluatorService'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
 import type { ArenaSession } from '../types/arena'
@@ -25,6 +25,7 @@ type ArenaPageProps = {
   onEvaluated: (session: ArenaSession, result: ArenaEvaluation) => ArenaAward
   onOpenAISettings: () => void
   aiSettingsVersion: number
+  selectionOverlay?: ReactNode
 }
 
 export function scrollToArenaSection(
@@ -36,7 +37,7 @@ export function scrollToArenaSection(
 }
 
 export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
-  onOpenAISettings, aiSettingsVersion }: ArenaPageProps) {
+  onOpenAISettings, aiSettingsVersion, selectionOverlay }: ArenaPageProps) {
   const [aiStatus, setAIStatus] = useState<AIStatus>('unavailable')
   const scenarioSectionRef = useRef<HTMLElement>(null)
   const scenarioBriefRef = useRef<HTMLDivElement>(null)
@@ -202,6 +203,7 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                 )}
               </>
             )}
+            {selectionOverlay}
           </>
         )}
 

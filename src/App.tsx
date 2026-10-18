@@ -2,12 +2,14 @@ import { ArenaPage } from './pages/ArenaPage'
 import { LeviOnboarding } from './components/levi-tour/LeviOnboarding'
 import { LeviHomeGuide } from './components/levi-tour/LeviHomeGuide'
 import { LeviSpotlight } from './components/levi-tour/LeviSpotlight'
+import { LeviArenaProduction } from './components/levi-tour/LeviArenaProduction'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
 import { TrainingPage } from './pages/TrainingPage'
 import { useAppState } from './state/useAppState'
 import { useLeviHomeGuide } from './state/useLeviHomeGuide'
 import './components/levi-tour/levi-home-guide.css'
+import './components/levi-tour/levi-arena-guide.css'
 
 export function App() {
   const [aiSettingsOpen, setAISettingsOpen] = useState(false)
@@ -28,6 +30,7 @@ export function App() {
     openHome,
   } = useAppState()
   const homeRoot = useRef<HTMLDivElement>(null)
+  const arenaRoot = useRef<HTMLDivElement>(null)
   const homeGuide = useLeviHomeGuide(screen === 'home')
 
   if (screen === 'onboarding') {
@@ -63,6 +66,7 @@ export function App() {
   if (screen === 'arena') {
     return (
       <>
+      <div className="levi-arena-root" ref={arenaRoot}>
       <ArenaPage
         role={selectedRole}
         roleProgress={roleProgress}
@@ -74,7 +78,9 @@ export function App() {
         onEvaluated={(session, result) => completeArenaEvaluation(selectedRole.id, session, result)}
         onOpenAISettings={() => setAISettingsOpen(true)}
         aiSettingsVersion={aiSettingsVersion}
+        selectionOverlay={<LeviArenaProduction root={arenaRoot} />}
       />
+      </div>
       {aiSettingsOpen && <AISettingsDialog onClose={() => setAISettingsOpen(false)}
         onSaved={() => setAISettingsVersion((version) => version + 1)} />}
       </>
