@@ -1,0 +1,29 @@
+.levi-onboarding .page-intro { padding-top: 40px; padding-bottom: 28px; }
+.levi-onboarding .page-intro h1 { overflow-wrap: anywhere; }
+.levi-onboarding__greetings { display: grid; grid-template-columns: minmax(0, 1fr); }
+.levi-onboarding__greeting { grid-area: 1 / 1; min-width: 0; }
+.levi-onboarding__greeting[aria-hidden='true'] { visibility: hidden; pointer-events: none; }
+@media (min-width: 561px) {
+  .levi-onboarding__greeting { display: flex; }
+}
+.levi-onboarding .levi-tour { position: relative; z-index: 10; }
+.levi-onboarding [data-tour='role-card'] { transition: border-color .4s ease, box-shadow .4s ease, background-color .15s ease; }
+.levi-onboarding [data-tour='role-card']:focus-visible { outline: 3px solid #445ccc; outline-offset: 5px; }
+.levi-onboarding[data-tour-active='true'] [data-tour='role-card'][data-tour-highlighted='true'] { border-color: #7d8edc; outline: 3px solid #445ccc; outline-offset: 4px; box-shadow: 0 0 0 7px rgb(68 92 204 / 12%), 0 0 22px rgb(68 92 204 / 18%); animation: levi-onboarding-target-in 650ms ease-out; }
+.levi-onboarding .role-current { margin: 0 0 10px; color: #445ccc; font-size: .8rem; font-weight: 700; }
+.levi-onboarding .role-option[aria-current='true'] { border-color: #889be7; }
+.levi-onboarding__continue { margin-top: 20px; border-radius: 12px; }
+.levi-spotlight { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 8; pointer-events: none; }
+@keyframes levi-onboarding-target-in {
+  from { box-shadow: 0 0 0 12px rgb(68 92 204 / 22%), 0 0 30px rgb(68 92 204 / 24%); }
+  to { box-shadow: 0 0 0 7px rgb(68 92 204 / 12%), 0 0 22px rgb(68 92 204 / 18%); }
+}
+@media (max-width: 560px) {
+  .levi-onboarding .page-container { padding-top: 20px; }
+  .levi-onboarding .page-intro { padding-top: 24px; padding-bottom: 20px; }
+  .levi-onboarding__continue { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .levi-onboarding [data-tour='role-card'] { transition: none; }
+  .levi-onboarding [data-tour='role-card'][data-tour-highlighted='true'] { animation: none; }
+}

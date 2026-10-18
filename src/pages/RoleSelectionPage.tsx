@@ -4,10 +4,12 @@ import { roles, type RoleId } from '../config/roles'
 
 type RoleSelectionPageProps = {
   onSelectRole: (roleId: RoleId) => void
+  selectedRoleId?: RoleId | null
+  onContinue?: () => void
   children?: ReactNode
 }
 
-export function RoleSelectionPage({ onSelectRole, children }: RoleSelectionPageProps) {
+export function RoleSelectionPage({ onSelectRole, selectedRoleId, onContinue, children }: RoleSelectionPageProps) {
   return (
     <main className="selection-page">
       <div className="page-container">
@@ -27,15 +29,18 @@ export function RoleSelectionPage({ onSelectRole, children }: RoleSelectionPageP
               type="button"
               data-tour="role-card"
               data-tour-role={role.id}
+              aria-current={selectedRoleId === role.id ? 'true' : undefined}
               onClick={() => onSelectRole(role.id)}
             >
               <span className="role-short-name">{role.shortName}</span>
               <span className="role-name">{role.name}</span>
+              {selectedRoleId === role.id && <span className="role-current">Текущая роль</span>}
               <span className="role-description">{role.description}</span>
               <span className="role-action">Выбрать →</span>
             </button>
           ))}
         </div>
+        {selectedRoleId && onContinue && <button className="primary-button levi-onboarding__continue" type="button" onClick={onContinue}>Продолжить</button>}
       </div>
     </main>
   )

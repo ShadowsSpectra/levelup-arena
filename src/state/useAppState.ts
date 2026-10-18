@@ -8,10 +8,7 @@ import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 type Screen = 'onboarding' | 'role-selection' | 'home' | 'training' | 'arena'
 
-function getInitialState(): { screen: Screen; selectedRoleId: RoleId | null } {
-  const onboardingComplete = appStorage.hasCompletedOnboarding()
-  const selectedRoleId = appStorage.getSelectedRole()
-
+export function initialAppState(onboardingComplete: boolean, selectedRoleId: RoleId | null): { screen: Screen; selectedRoleId: RoleId | null } {
   if (!onboardingComplete) {
     return { screen: 'onboarding', selectedRoleId }
   }
@@ -23,20 +20,22 @@ function getInitialState(): { screen: Screen; selectedRoleId: RoleId | null } {
 }
 
 export function useAppState() {
-  const [appState, setAppState] = useState(getInitialState)
+  const [appState, setAppState] = useState(() => initialAppState(appStorage.hasCompletedLeviOnboarding(), appStorage.getSelectedRole()))
   const [progression, setProgression] = useState(appStorage.getProgression)
   const selectedRole = getRoleById(appState.selectedRoleId)
   const roleProgress = selectedRole
     ? getRoleProgress(progression, selectedRole.id)
     : null
 
-  function completeOnboarding() {
-    appStorage.setOnboardingComplete()
-    setAppState((current) => ({ ...current, screen: 'role-selection' }))
+  function continueOnboarding() {
+    if (appState.screen !== 'onboarding' || !appState.selectedRoleId) return
+    if (appStorage.getSelectedRole() === appState.selectedRoleId) appStorage.setLeviOnboardingComplete()
+    setAppState((current) => ({ ...current, screen: 'home' }))
   }
 
   function selectRole(roleId: RoleId) {
     appStorage.setSelectedRole(roleId)
+    if (appState.screen === 'onboarding' && appStorage.getSelectedRole() === roleId) appStorage.setLeviOnboardingComplete()
     setAppState({ screen: 'home', selectedRoleId: roleId })
   }
 
@@ -94,7 +93,7 @@ export function useAppState() {
     selectedRole,
     progression,
     roleProgress,
-    completeOnboarding,
+    continueOnboarding,
     selectRole,
     changeRole,
     openTraining,

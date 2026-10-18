@@ -4,6 +4,7 @@ import { createInitialProgression, type ProgressionState } from './progression'
 
 const storageKeys = {
   onboardingComplete: 'levelup-arena:onboarding-complete',
+  leviOnboardingVersion: 'levelup-arena:levi-onboarding-version',
   selectedRole: 'levelup-arena:selected-role',
   progression: 'levelup-arena:progression-v1',
 } as const
@@ -102,6 +103,15 @@ function write(key: string, value: string) {
 }
 
 export const appStorage = {
+  hasCompletedLeviOnboarding() {
+    const version = Number(read(storageKeys.leviOnboardingVersion))
+    return Number.isSafeInteger(version) && version >= 1
+  },
+
+  setLeviOnboardingComplete() {
+    write(storageKeys.leviOnboardingVersion, '1')
+  },
+
   hasCompletedOnboarding() {
     return read(storageKeys.onboardingComplete) === 'true'
   },

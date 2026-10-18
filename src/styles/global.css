@@ -27,22 +27,11 @@ h1, h2, p { margin-top: 0; }
 .primary-button:disabled { background: #aeb5d5; cursor: not-allowed; }
 .text-button, .back-button { padding: 0; border: 0; background: transparent; color: #445ccc; font-weight: 650; cursor: pointer; }
 .text-button:hover, .back-button:hover { text-decoration: underline; }
-.section-kicker, .step-label { color: #445ccc; font-size: .78rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+.section-kicker { color: #445ccc; font-size: .78rem; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 
-.onboarding-page, .selection-page, .placeholder-page { min-height: 100vh; background: #fff; }
-.onboarding-page { display: grid; place-items: center; padding: 24px; background: #f7f9fc; }
-.onboarding-shell { display: flex; width: min(100%, 760px); min-height: 520px; flex-direction: column; padding: clamp(28px, 5vw, 52px); border: 1px solid #e2e6ef; border-radius: 22px; background: #fff; box-shadow: 0 12px 36px rgb(23 32 54 / 5%); }
-.onboarding-content { display: flex; max-width: 620px; flex: 1; flex-direction: column; justify-content: center; padding: 60px 0 48px; }
-.onboarding-content .step-label { align-self: flex-start; padding: 7px 11px; border-radius: 999px; background: #f0f3ff; }
-.onboarding-content h1, .page-intro h1, .home-intro h1, .placeholder-content h1 { margin: 14px 0 18px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.08; letter-spacing: -.045em; }
-.onboarding-content p, .page-intro p, .home-intro p, .placeholder-content p { max-width: 610px; margin-bottom: 0; color: #626a7a; font-size: 1.05rem; line-height: 1.65; }
-.onboarding-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.step-dots { display: flex; gap: 8px; }
-.onboarding-footer .step-dot { width: 26px; height: 4px; border-radius: 999px; background: #d9dfea; }
-.onboarding-footer .step-dot.is-active { background: #445ccc; }
-.onboarding-footer .primary-button { border-radius: 13px; transition: background-color .15s ease, box-shadow .15s ease; }
-.onboarding-footer .primary-button:hover { box-shadow: 0 4px 12px rgb(68 92 204 / 15%); }
-.onboarding-footer .primary-button:focus-visible { outline: 3px solid rgb(68 92 204 / 30%); outline-offset: 3px; }
+.selection-page, .placeholder-page { min-height: 100vh; background: #fff; }
+.page-intro h1, .home-intro h1, .placeholder-content h1 { margin: 14px 0 18px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.08; letter-spacing: -.045em; }
+.page-intro p, .home-intro p, .placeholder-content p { max-width: 610px; margin-bottom: 0; color: #626a7a; font-size: 1.05rem; line-height: 1.65; }
 
 .page-container, .placeholder-shell { width: min(100%, 1120px); margin: 0 auto; padding: 36px 28px 72px; }
 .page-intro { max-width: 700px; padding: 100px 0 48px; }
@@ -583,11 +572,6 @@ h1, h2, p { margin-top: 0; }
 
 @media (max-width: 560px) {
   body { min-width: 0; }
-  .onboarding-page { padding: 12px; }
-  .onboarding-shell { min-height: calc(100vh - 24px); min-height: calc(100dvh - 24px); padding: 24px 24px max(32px, env(safe-area-inset-bottom)); }
-  .onboarding-content { flex: 0 0 auto; justify-content: flex-start; padding: clamp(48px, 8dvh, 72px) 0 22px; }
-  .onboarding-footer { align-items: flex-start; flex-direction: column; gap: 18px; }
-  .onboarding-footer .primary-button { width: 100%; }
   .role-list { gap: 12px; }
   .role-option { padding: 20px; border-radius: 16px; }
   .role-short-name { margin-bottom: 16px; }

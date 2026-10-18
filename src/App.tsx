@@ -1,5 +1,5 @@
 import { ArenaPage } from './pages/ArenaPage'
-import { OnboardingPage } from './pages/OnboardingPage'
+import { LeviOnboarding } from './components/levi-tour/LeviOnboarding'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
 import { TrainingPage } from './pages/TrainingPage'
@@ -13,7 +13,7 @@ export function App() {
     selectedRole,
     progression,
     roleProgress,
-    completeOnboarding,
+    continueOnboarding,
     selectRole,
     changeRole,
     openTraining,
@@ -25,7 +25,7 @@ export function App() {
   } = useAppState()
 
   if (screen === 'onboarding') {
-    return <OnboardingPage onComplete={completeOnboarding} />
+    return <LeviOnboarding selectedRoleId={selectedRole?.id ?? null} onSelectRole={selectRole} onContinue={continueOnboarding} />
   }
 
   if (screen === 'role-selection') {
