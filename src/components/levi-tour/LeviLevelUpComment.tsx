@@ -4,7 +4,7 @@ import type { LeviLevelUp } from '../../state/useAppState'
 import { LeviCommentator } from './LeviCommentator'
 
 const messages = {
-  2: { text: 'Второй уровень! Уже почти не стыдно брать тебя на переговоры. Почти.', emotion: 'happy' },
+  2: { text: 'Второй уровень! Так, подожди… Ты действительно становишься лучше? Я к этому не готов.', emotion: 'happy' },
   3: { text: 'Третий уровень? Ладно, признаю. Скоро ты сможешь договориться даже со мной.', emotion: 'judge' },
 } as const
 

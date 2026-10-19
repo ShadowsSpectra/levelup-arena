@@ -17,6 +17,18 @@
 .levi-tour__comment { min-width: 0; font-style: italic; color: #596682; }
 @media (min-width: 1025px) { .levi-tour__comment-nowrap { white-space: nowrap; } }
 @keyframes levi-message-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 600px) {
+  .levi-onboarding__greeting[aria-hidden='false'] .levi-tour__bubble,
+  .levi-home-guide:not(.levi-finish-hint) .levi-tour__bubble { background: #edf5ff; }
+}
+@media (max-width: 600px) and (prefers-reduced-motion: no-preference) {
+  .levi-onboarding__greeting[aria-hidden='false'] .levi-tour__bubble,
+  .levi-home-guide:not(.levi-finish-hint) .levi-tour__bubble { animation: levi-mobile-guide-glow .7s ease-out; }
+  @keyframes levi-mobile-guide-glow {
+    0%, 100% { box-shadow: 0 6px 20px rgb(34 51 100 / 9%); }
+    45% { box-shadow: 0 0 0 5px rgb(68 92 204 / 12%), 0 6px 24px rgb(68 92 204 / 25%); }
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .levi-tour__message { animation: none; }
 }

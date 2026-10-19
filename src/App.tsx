@@ -37,6 +37,13 @@ export function App() {
   const homeRoot = useRef<HTMLDivElement>(null)
   const arenaRoot = useRef<HTMLDivElement>(null)
   const homeGuide = useLeviHomeGuide(screen === 'home')
+  const previousScreen = useRef(screen)
+
+  useLayoutEffect(() => {
+    if (previousScreen.current === screen) return
+    previousScreen.current = screen
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [screen])
 
   if (screen === 'onboarding') {
     return <LeviOnboarding selectedRoleId={selectedRole?.id ?? null} onSelectRole={(roleId) => {
@@ -129,5 +136,5 @@ export function App() {
     </div>
   )
 }
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { AISettingsDialog } from './components/AISettingsDialog'
