@@ -1,10 +1,13 @@
 import { AppHeader } from '../components/AppHeader'
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { LeviLevelUpComment } from '../components/levi-tour/LeviLevelUpComment'
+import { LeviCommentator } from '../components/levi-tour/LeviCommentator'
 import { AnswerFeedback } from '../components/training/AnswerFeedback'
 import { QuestionRenderer } from '../components/training/QuestionRenderer'
 import type { Role } from '../config/roles'
 import type { TrainingAward, getRoleProgress } from '../services/progression'
+import { appStorage } from '../services/storage'
 import { useTrainingSession } from '../state/useTrainingSession'
 import type { LeviLevelUp } from '../state/useAppState'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
@@ -36,6 +39,29 @@ export function TrainingPage({
 }: TrainingPageProps) {
   const training = useTrainingSession(role.id, roleProgress.level, onComplete)
   const resultRoot = useRef<HTMLElement>(null)
+  const trainingStatus = useRef(training.status)
+  trainingStatus.current = training.status
+  const [showWelcome, setShowWelcome] = useState(false)
+
+  useEffect(() => {
+    let frame = 0
+    let disposed = false
+    function show() {
+      cancelAnimationFrame(frame)
+      if (trainingStatus.current === 'result' || document.visibilityState === 'hidden' || appStorage.hasViewedLeviTrainingWelcome()) return
+      frame = requestAnimationFrame(() => {
+        if (disposed || trainingStatus.current === 'result' || document.visibilityState === 'hidden' || appStorage.hasViewedLeviTrainingWelcome()) return
+        if (appStorage.markLeviTrainingWelcomeViewed()) flushSync(() => setShowWelcome(true))
+      })
+    }
+    document.addEventListener('visibilitychange', show)
+    show()
+    return () => { disposed = true; cancelAnimationFrame(frame); document.removeEventListener('visibilitychange', show) }
+  }, [])
+
+  useEffect(() => {
+    if (training.status === 'result') setShowWelcome(false)
+  }, [training.status])
 
   return (
     <div className="app-shell">
@@ -46,6 +72,9 @@ export function TrainingPage({
         streak={streak}
         onChangeRole={onChangeRole}
       />
+      {showWelcome && training.status !== 'result' && <LeviCommentator
+        text="Тренировка? Хороший выбор. Даже мне иногда приходится оттачивать мастерство." emotion="happy"
+        onDismiss={() => setShowWelcome(false)} />}
 
       {training.status === 'loading' && (
         <main className="training-message" aria-live="polite">

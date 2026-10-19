@@ -8,6 +8,7 @@ const storageKeys = {
   leviHomeGuideVersion: 'levelup-arena:levi-home-guide-version',
   leviArenaGuideVersion: 'levelup-arena:levi-arena-guide-version',
   leviFinishHintVersion: 'levelup-arena:levi-finish-hint-version',
+  leviTrainingWelcomeVersion: 'levelup-arena:levi-training-welcome-version',
   selectedRole: 'levelup-arena:selected-role',
   progression: 'levelup-arena:progression-v1',
 } as const
@@ -106,6 +107,18 @@ function write(key: string, value: string) {
 }
 
 export const appStorage = {
+  hasViewedLeviTrainingWelcome() {
+    try { return window.localStorage.getItem(storageKeys.leviTrainingWelcomeVersion) === '1' }
+    catch { return true }
+  },
+
+  markLeviTrainingWelcomeViewed() {
+    try {
+      window.localStorage.setItem(storageKeys.leviTrainingWelcomeVersion, '1')
+      return window.localStorage.getItem(storageKeys.leviTrainingWelcomeVersion) === '1'
+    } catch { return false }
+  },
+
   hasViewedLeviFinishHint() {
     try { return window.localStorage.getItem(storageKeys.leviFinishHintVersion) === '1' }
     catch { return true }
