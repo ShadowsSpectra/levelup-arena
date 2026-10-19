@@ -11,6 +11,7 @@ type RoleHomePageProps = {
   streak: number
   onChangeRole: () => void
   onOpenTraining: () => void
+  onOpenWorkshop?: () => void
   onOpenArena: () => void
   onOpenAISettings: () => void
   tourSlot?: { position: 'intro' | 'stats' | 'training' | 'arena'; content: ReactNode }
@@ -23,6 +24,7 @@ export function RoleHomePage({
   streak,
   onChangeRole,
   onOpenTraining,
+  onOpenWorkshop,
   onOpenArena,
   onOpenAISettings,
   tourSlot,
@@ -76,6 +78,14 @@ export function RoleHomePage({
             </button>
           </article>
         </section>
+        {onOpenWorkshop && <div className="home-workshop-entry">
+          <div>
+            <span className="section-kicker">СКОРО</span>
+            <h2>Мастерская</h2>
+            <p>Создавай своих оппонентов, сценарии и испытания</p>
+          </div>
+          <button className="text-button" type="button" onClick={onOpenWorkshop}>Заглянуть в мастерскую →</button>
+        </div>}
         <section className="home-leaderboard" aria-labelledby="home-leaderboard-title">
           <div className="home-leaderboard-intro">
             <div>

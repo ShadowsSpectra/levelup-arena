@@ -6,6 +6,7 @@ import { LeviArenaProduction } from './components/levi-tour/LeviArenaProduction'
 import { RoleHomePage } from './pages/RoleHomePage'
 import { RoleSelectionPage } from './pages/RoleSelectionPage'
 import { TrainingPage } from './pages/TrainingPage'
+import { WorkshopPage } from './pages/WorkshopPage'
 import { useAppState } from './state/useAppState'
 import { useLeviHomeGuide } from './state/useLeviHomeGuide'
 import './components/levi-tour/levi-home-guide.css'
@@ -23,6 +24,7 @@ export function App() {
     selectRole,
     changeRole,
     openTraining,
+    openWorkshop,
     openArena,
     completeTraining,
     completeArena,
@@ -63,6 +65,11 @@ export function App() {
     )
   }
 
+  if (screen === 'workshop') {
+    return <WorkshopPage role={selectedRole} roleProgress={roleProgress} energy={progression.energy}
+      streak={progression.streak} onBack={openHome} onChangeRole={changeRole} />
+  }
+
   if (screen === 'arena') {
     return (
       <>
@@ -96,6 +103,7 @@ export function App() {
       streak={progression.streak}
       onChangeRole={changeRole}
       onOpenTraining={openTraining}
+      onOpenWorkshop={openWorkshop}
       onOpenArena={openArena}
       onOpenAISettings={() => setAISettingsOpen(true)}
     />

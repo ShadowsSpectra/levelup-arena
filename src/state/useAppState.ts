@@ -6,7 +6,7 @@ import type { ArenaSession } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
-type Screen = 'onboarding' | 'role-selection' | 'home' | 'training' | 'arena'
+type Screen = 'onboarding' | 'role-selection' | 'home' | 'training' | 'arena' | 'workshop'
 
 export function initialAppState(onboardingComplete: boolean, selectedRoleId: RoleId | null): { screen: Screen; selectedRoleId: RoleId | null } {
   if (!onboardingComplete) {
@@ -45,6 +45,10 @@ export function useAppState() {
 
   function openTraining() {
     setAppState((current) => ({ ...current, screen: 'training' }))
+  }
+
+  function openWorkshop() {
+    setAppState((current) => ({ ...current, screen: 'workshop' }))
   }
 
   function openArena() {
@@ -97,6 +101,7 @@ export function useAppState() {
     selectRole,
     changeRole,
     openTraining,
+    openWorkshop,
     openArena,
     completeTraining,
     completeArena,
