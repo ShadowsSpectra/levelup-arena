@@ -402,7 +402,10 @@ h1, h2, p { margin-top: 0; }
 .arena-choice-card.is-locked .arena-card-title { color: #596273; }
 .arena-choice-card.is-locked .arena-difficulty-badge { background: #e8ebf0; color: #687180; }
 .arena-choice-card.is-locked .arena-trait .arena-ui-icon, .arena-choice-card.is-locked .arena-lock-status .arena-ui-icon { color: #7f8795; }
-.arena-preview-card { border-style: dashed; background: #f3f5f8; color: #7b8291; opacity: .8; cursor: not-allowed; }
+.arena-preview-card { border-style: dashed; background: #f3f5f8; color: #7b8291; opacity: .8; cursor: pointer; }
+.arena-preview-card:not(:disabled):hover { border-color: #c5cbd5; background: #eceff3; }
+.arena-preview-card:focus-visible { outline: 3px solid #7b8291; outline-offset: 3px; }
+.arena-preview-card:disabled { cursor: not-allowed; }
 .arena-preview-card strong { font-size: 1.15rem; }
 .arena-preview-card small { margin-top: auto; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; }
 .arena-empty-state { max-width: 650px; padding: 32px; border: 1px solid #dfe2e8; background: #fff; }

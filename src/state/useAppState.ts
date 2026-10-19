@@ -22,6 +22,7 @@ export function initialAppState(onboardingComplete: boolean, selectedRoleId: Rol
 export function useAppState() {
   const [appState, setAppState] = useState(() => initialAppState(appStorage.hasCompletedLeviOnboarding(), appStorage.getSelectedRole()))
   const [progression, setProgression] = useState(appStorage.getProgression)
+  const [workshopOrigin, setWorkshopOrigin] = useState<'home' | 'arena'>('home')
   const selectedRole = getRoleById(appState.selectedRoleId)
   const roleProgress = selectedRole
     ? getRoleProgress(progression, selectedRole.id)
@@ -48,6 +49,7 @@ export function useAppState() {
   }
 
   function openWorkshop() {
+    setWorkshopOrigin(appState.screen === 'arena' ? 'arena' : 'home')
     setAppState((current) => ({ ...current, screen: 'workshop' }))
   }
 
@@ -94,6 +96,7 @@ export function useAppState() {
 
   return {
     screen: appState.screen,
+    workshopOrigin,
     selectedRole,
     progression,
     roleProgress,

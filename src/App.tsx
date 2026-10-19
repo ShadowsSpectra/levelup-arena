@@ -17,6 +17,7 @@ export function App() {
   const [aiSettingsVersion, setAISettingsVersion] = useState(0)
   const {
     screen,
+    workshopOrigin,
     selectedRole,
     progression,
     roleProgress,
@@ -65,15 +66,15 @@ export function App() {
     )
   }
 
-  if (screen === 'workshop') {
+  if (screen === 'workshop' && workshopOrigin === 'home') {
     return <WorkshopPage role={selectedRole} roleProgress={roleProgress} energy={progression.energy}
       streak={progression.streak} onBack={openHome} onChangeRole={changeRole} />
   }
 
-  if (screen === 'arena') {
+  if (screen === 'arena' || (screen === 'workshop' && workshopOrigin === 'arena')) {
     return (
       <>
-      <div className="levi-arena-root" ref={arenaRoot}>
+      <div className="levi-arena-root" ref={arenaRoot} hidden={screen !== 'arena'}>
       <ArenaPage
         role={selectedRole}
         roleProgress={roleProgress}
@@ -85,10 +86,14 @@ export function App() {
         onEvaluated={(session, result) => completeArenaEvaluation(selectedRole.id, session, result)}
         onOpenAISettings={() => setAISettingsOpen(true)}
         aiSettingsVersion={aiSettingsVersion}
-        selectionOverlay={<LeviArenaProduction root={arenaRoot} />}
+        onOpenWorkshop={openWorkshop}
+        selectionOverlay={screen === 'arena' ? <LeviArenaProduction root={arenaRoot} /> : undefined}
       />
       </div>
-      {aiSettingsOpen && <AISettingsDialog onClose={() => setAISettingsOpen(false)}
+      {screen === 'workshop' && <WorkshopPage role={selectedRole} roleProgress={roleProgress}
+        energy={progression.energy} streak={progression.streak} onBack={openArena}
+        onChangeRole={changeRole} backLabel="← Назад в Arena" />}
+      {screen === 'arena' && aiSettingsOpen && <AISettingsDialog onClose={() => setAISettingsOpen(false)}
         onSaved={() => setAISettingsVersion((version) => version + 1)} />}
       </>
     )

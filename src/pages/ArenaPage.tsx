@@ -27,6 +27,7 @@ type ArenaPageProps = {
   onOpenAISettings: () => void
   aiSettingsVersion: number
   selectionOverlay?: ReactNode
+  onOpenWorkshop?: () => void
 }
 
 export function scrollToArenaSection(
@@ -38,7 +39,7 @@ export function scrollToArenaSection(
 }
 
 export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
-  onOpenAISettings, aiSettingsVersion, selectionOverlay }: ArenaPageProps) {
+  onOpenAISettings, aiSettingsVersion, selectionOverlay, onOpenWorkshop }: ArenaPageProps) {
   const [aiStatus, setAIStatus] = useState<AIStatus>('unavailable')
   const negotiationRoot = useRef<HTMLDivElement>(null)
   const scenarioSectionRef = useRef<HTMLElement>(null)
@@ -148,11 +149,11 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                       </button>
                     )
                   })}
-                  <div className="arena-preview-card" aria-disabled="true">
+                  <button className="arena-preview-card" type="button" onClick={onOpenWorkshop} disabled={!onOpenWorkshop}>
                     <strong>+ Свой оппонент</strong>
                     <span>Создайте AI-оппонента с собственной ролью и характером.</span>
                     <small>Мастерская · скоро</small>
-                  </div>
+                  </button>
                 </div>
                 {characters.length > 0 && (
                   <div className="arena-future-tier" aria-label="Будущее развитие Arena">
@@ -178,11 +179,11 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
                           <span className="arena-card-action">Выбрать сценарий →</span>
                         </button>
                       ))}
-                      <div className="arena-preview-card" aria-disabled="true">
+                      <button className="arena-preview-card" type="button" onClick={onOpenWorkshop} disabled={!onOpenWorkshop}>
                         <strong>+ Свой сценарий</strong>
                         <span>Придумайте переговорную ситуацию и предложите её сообществу.</span>
                         <small>Мастерская · скоро</small>
-                      </div>
+                      </button>
                     </div>
 
                     {arena.selected && (

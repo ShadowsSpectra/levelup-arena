@@ -10,13 +10,14 @@ type WorkshopPageProps = {
   streak: number
   onBack: () => void
   onChangeRole: () => void
+  backLabel?: string
 }
 
-export function WorkshopPage({ role, roleProgress, energy, streak, onBack, onChangeRole }: WorkshopPageProps) {
+export function WorkshopPage({ role, roleProgress, energy, streak, onBack, onChangeRole, backLabel = '← На главную' }: WorkshopPageProps) {
   return <div className="app-shell">
     <AppHeader role={role} roleProgress={roleProgress} energy={energy} streak={streak} onChangeRole={onChangeRole} />
     <main className="workshop-page">
-      <button className="back-button" type="button" onClick={onBack}>← На главную</button>
+      <button className="back-button" type="button" onClick={onBack}>{backLabel}</button>
       <header className="workshop-hero">
         <div className="workshop-hero-copy">
           <span className="workshop-hero-label">Мастерская <span>СКОРО / В РАЗРАБОТКЕ</span></span>
