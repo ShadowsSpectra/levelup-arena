@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { AppHeader } from '../components/AppHeader'
+import { SleepingLevi } from '../components/mascot/SleepingLevi'
 import type { Role, RoleId } from '../config/roles'
 import { demoLeaderboards } from '../content/demoVision'
 import type { getRoleProgress } from '../services/progression'
@@ -14,6 +15,7 @@ type RoleHomePageProps = {
   onOpenWorkshop?: () => void
   onOpenArena: () => void
   onOpenAISettings: () => void
+  leviGuideActive?: boolean
   tourSlot?: { position: 'intro' | 'stats' | 'training' | 'arena'; content: ReactNode }
 }
 
@@ -37,6 +39,7 @@ export function RoleHomePage({
   onOpenWorkshop,
   onOpenArena,
   onOpenAISettings,
+  leviGuideActive = false,
   tourSlot,
 }: RoleHomePageProps) {
   const [leaderboardExpanded, setLeaderboardExpanded] = useState(false)
@@ -128,6 +131,7 @@ export function RoleHomePage({
           </div>
         </section>
         <button className="text-button ai-settings-entry" type="button" onClick={onOpenAISettings}>AI Settings</button>
+        <SleepingLevi guideActive={leviGuideActive} />
       </main>
     </div>
   )

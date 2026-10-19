@@ -117,6 +117,7 @@ export function App() {
       onOpenWorkshop={openWorkshop}
       onOpenArena={openArena}
       onOpenAISettings={() => setAISettingsOpen(true)}
+      leviGuideActive={homeGuide.status !== 'completed'}
     />
     {homeGuide.status !== 'completed' && <>
       <LeviHomeGuide root={homeRoot} step={homeGuide.status === 'home' ? homeGuide.step : undefined}
