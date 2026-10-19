@@ -1,6 +1,47 @@
+import type { RoleId } from '../config/roles'
+
 // Presentation-only examples. These are not player accounts or Arena content cards.
-export const demoLeaderboard = [
-  { name: 'Мария К.', score: 92 },
-  { name: 'Денис Р.', score: 86 },
-  { name: 'Амина С.', score: 79 },
-] as const
+export const demoLeaderboards = {
+  product_manager: [
+    { name: 'Мария К.', score: 92 },
+    { name: 'Денис Р.', score: 86 },
+    { name: 'Амина С.', score: 79 },
+    { name: 'Алексей В.', score: 98 },
+    { name: 'Елена М.', score: 95 },
+    { name: 'Илья Н.', score: 90 },
+    { name: 'София Л.', score: 88 },
+    { name: 'Артём Б.', score: 83 },
+    { name: 'Анна Т.', score: 81 },
+    { name: 'Максим Д.', score: 76 },
+    { name: 'Ольга П.', score: 72 },
+    { name: 'Никита Ф.', score: 68 },
+  ],
+  project_manager: [
+    { name: 'Виктория Н.', score: 97 },
+    { name: 'Павел С.', score: 94 },
+    { name: 'Ирина Д.', score: 91 },
+    { name: 'Михаил К.', score: 89 },
+    { name: 'Дарья В.', score: 85 },
+    { name: 'Глеб Р.', score: 82 },
+    { name: 'Алиса П.', score: 78 },
+    { name: 'Роман А.', score: 75 },
+    { name: 'Юлия Ф.', score: 71 },
+    { name: 'Кирилл М.', score: 67 },
+    { name: 'Надежда Т.', score: 63 },
+    { name: 'Сергей Л.', score: 59 },
+  ],
+  sales_manager: [
+    { name: 'Полина Р.', score: 99 },
+    { name: 'Даниил В.', score: 96 },
+    { name: 'Ксения Б.', score: 93 },
+    { name: 'Владислав Н.', score: 87 },
+    { name: 'Марина Е.', score: 84 },
+    { name: 'Егор Т.', score: 80 },
+    { name: 'Вероника С.', score: 77 },
+    { name: 'Олег М.', score: 73 },
+    { name: 'Татьяна К.', score: 70 },
+    { name: 'Андрей П.', score: 66 },
+    { name: 'Екатерина Д.', score: 62 },
+    { name: 'Фёдор И.', score: 58 },
+  ],
+} satisfies Record<RoleId, readonly { name: string; score: number }[]>

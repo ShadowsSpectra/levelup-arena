@@ -28,7 +28,7 @@ const {
 } = await server.ssrLoadModule('/src/services/trainingEngine.ts')
 const { localQuestionSource } = await server.ssrLoadModule('/src/content/questionSource.ts')
 const { appStorage } = await server.ssrLoadModule('/src/services/storage.ts')
-const { RoleHomePage } = await server.ssrLoadModule('/src/pages/RoleHomePage.tsx')
+const { RoleHomePage, buildDemoLeaderboard } = await server.ssrLoadModule('/src/pages/RoleHomePage.tsx')
 const { roles } = await server.ssrLoadModule('/src/config/roles.ts')
 
 const roleIds = ['product_manager', 'project_manager', 'sales_manager']
@@ -99,7 +99,7 @@ test('Arena CTA is available before Training and after a failed Training for eve
   }
 })
 
-test('demo leaderboard keeps one demo disclosure and shows the selected role best score', () => {
+test('demo leaderboard keeps its demo label and shows the selected role best score', () => {
   const role = roles[0]
   const progression = createInitialProgression()
   progression.roles[role.id].bosses.example = { attempts: 1, defeated: false, bestScore: 84 }
@@ -109,9 +109,74 @@ test('demo leaderboard keeps one demo disclosure and shows the selected role bes
     onChangeRole() {}, onOpenTraining() {}, onOpenArena() {}, onOpenAISettings() {},
   }))
   assert.match(html, /Демо/)
-  assert.doesNotMatch(html, /ВЗГЛЯД ВПЕРЁД|участники вымышлены|демо<\/small>|Вы /)
+  assert.doesNotMatch(html, /Демо-участники вымышлены/)
+  assert.doesNotMatch(html, /ВЗГЛЯД ВПЕРЁД|демо<\/small>/)
   assert.match(html, /Ваш результат/)
+  assert.doesNotMatch(html, /Ваш результат\s+Вы/)
   assert.match(html, /<strong>84<small> \/ 100<\/small><\/strong>/)
+  assert.match(html, /aria-expanded="false"[^>]*>Показать весь рейтинг<\/button>/)
+})
+
+test('demo leaderboard ranks the player by the selected role best score with stable ties', () => {
+  const role = roles[0]
+  for (const score of [100, 89, 88, 87, 86, 84, 0, null]) {
+    const leaderboard = buildDemoLeaderboard(role.id, score)
+    assert.equal(leaderboard.length, 13)
+    assert.equal(leaderboard.filter((participant) => participant.isPlayer).length, 1)
+    for (const name of ['Мария К.', 'Денис Р.', 'Амина С.']) {
+      assert.ok(leaderboard.some((participant) => participant.name === name))
+    }
+    leaderboard.forEach((participant, index) => {
+      assert.equal(participant.place, index + 1)
+      if (index > 0) assert.ok((leaderboard[index - 1].score ?? -1) >= (participant.score ?? -1))
+    })
+    if (score === 86) {
+      assert.ok(leaderboard.findIndex((participant) => participant.name === 'Денис Р.')
+        < leaderboard.findIndex((participant) => participant.isPlayer))
+    }
+    const progression = createInitialProgression()
+    progression.roles[role.id].bosses.example = { attempts: 1, defeated: false, bestScore: score }
+    const html = renderToStaticMarkup(createElement(RoleHomePage, {
+      role, roleProgress: getRoleProgress(progression, role.id),
+      energy: progression.energy, streak: progression.streak,
+      onChangeRole() {}, onOpenTraining() {}, onOpenArena() {}, onOpenAISettings() {},
+    }))
+    const list = html.match(/<ol class="home-leaderboard-list"[^>]*>([\s\S]*?)<\/ol>/)?.[1]
+    assert.ok(list)
+    const rows = [...list.matchAll(/<li(?: class="[^"]*")?>([\s\S]*?)<\/li>/g)].map((match) => match[1])
+    const player = leaderboard.find((participant) => participant.isPlayer)
+    const visible = player.place > 5 ? [...leaderboard.slice(0, 4), player] : leaderboard.slice(0, 5)
+    assert.equal(rows.length, 5)
+    rows.forEach((row, index) => {
+      assert.match(row, new RegExp(`home-leaderboard-place">${String(visible[index].place).padStart(2, '0')}<`))
+      assert.ok(row.includes(visible[index].name))
+    })
+    assert.equal(rows.filter((row) => row.includes('Ваш результат')).length, 1)
+    if (score === null) assert.match(rows.at(-1), /<strong>—<\/strong>/)
+  }
+})
+
+test('demo leaderboard uses distinct participants and scores for each role', () => {
+  const progression = createInitialProgression()
+  const roleScores = [73, 82, 91]
+  const demoNames = []
+  for (const [index, role] of roles.entries()) {
+    progression.roles[role.id].bosses.example = { attempts: 1, defeated: false, bestScore: roleScores[index] }
+    const leaderboard = buildDemoLeaderboard(role.id, roleScores[index])
+    assert.equal(leaderboard.length, 13)
+    assert.equal(leaderboard.find((participant) => participant.isPlayer).score, roleScores[index])
+    demoNames.push(leaderboard.filter((participant) => !participant.isPlayer).map((participant) => participant.name))
+  }
+  for (const [index, role] of roles.entries()) {
+    const html = renderToStaticMarkup(createElement(RoleHomePage, {
+      role, roleProgress: getRoleProgress(progression, role.id),
+      energy: progression.energy, streak: progression.streak,
+      onChangeRole() {}, onOpenTraining() {}, onOpenArena() {}, onOpenAISettings() {},
+    }))
+    assert.match(html, new RegExp(`<strong>${roleScores[index]}<small> / 100</small></strong>`))
+    assert.ok(demoNames[index].some((name) => html.includes(name)))
+    assert.ok(demoNames[(index + 1) % roles.length].every((name) => !html.includes(name)))
+  }
 })
 
 test('failed Training awards only correct-answer XP and consumes Energy', () => {

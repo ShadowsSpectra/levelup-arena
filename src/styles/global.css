@@ -74,15 +74,16 @@ h1, h2, p { margin-top: 0; }
 .activity > .primary-button:focus-visible { outline: 3px solid rgb(68 92 204 / 28%); outline-offset: 3px; }
 .activity-locked { background: #f0f1f4; }
 .lock-message { display: flex; max-width: 410px; gap: 10px; margin-bottom: 24px; color: #555e6e; font-size: .9rem; line-height: 1.5; }
-.home-leaderboard { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 32px; margin-top: 52px; padding-top: 26px; border-top: 1px solid #dfe2e8; }
+.home-leaderboard { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 32px; margin-top: 52px; padding: 32px; border: 1px solid #dfe3ec; border-radius: 19px; background: #fff; box-shadow: 0 8px 24px rgb(23 32 54 / 4%); }
 .home-leaderboard-intro h2 { margin: 8px 0 10px; font-size: 1.45rem; letter-spacing: -.025em; }
 .home-leaderboard-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-.home-leaderboard-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; padding: 9px 0; border-bottom: 1px solid #eceef2; font-size: .92rem; }
-.home-leaderboard-list li:last-child { border-bottom: 0; }
+.home-leaderboard-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; padding: 9px 8px; font-size: .92rem; }
+.home-leaderboard-list li:not(.home-leaderboard-you) + li:not(.home-leaderboard-you) { border-top: 1px solid #eceef2; }
 .home-leaderboard-list small { color: #818899; font-size: .75rem; font-weight: 500; }
 .home-leaderboard-list strong { white-space: nowrap; }
 .home-leaderboard-place { color: #818899; font-size: .8rem; font-weight: 750; }
-.home-leaderboard-you { color: #445ccc; font-weight: 700; }
+.home-leaderboard-you { border-radius: 10px; background: #f1f5ff; color: #445ccc; font-weight: 700; }
+.home-leaderboard-toggle { margin: 14px 8px 0; }
 
 .placeholder-shell { display: flex; min-height: 100vh; flex-direction: column; }
 .back-button { align-self: flex-start; margin-top: 56px; }
@@ -594,7 +595,7 @@ h1, h2, p { margin-top: 0; }
   .stat-detail { flex: 0 0 auto; font-size: .72rem; }
   .stat-item { flex: 0 0 auto; }
   .home-content { padding-top: 56px; padding-bottom: 56px; }
-  .home-leaderboard { margin-top: 40px; }
+  .home-leaderboard { margin-top: 40px; padding: 20px; border-radius: 17px; }
   .home-leaderboard-list li { gap: 7px; font-size: .85rem; }
   .activity-list { gap: 12px; }
   .activity { min-height: 230px; padding: 20px; border-radius: 17px; }
