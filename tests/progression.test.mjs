@@ -29,9 +29,40 @@ const {
 const { localQuestionSource } = await server.ssrLoadModule('/src/content/questionSource.ts')
 const { appStorage } = await server.ssrLoadModule('/src/services/storage.ts')
 const { RoleHomePage, buildDemoLeaderboard } = await server.ssrLoadModule('/src/pages/RoleHomePage.tsx')
+const { savedLevelUp } = await server.ssrLoadModule('/src/state/useAppState.ts')
+const { LeviLevelUpComment } = await server.ssrLoadModule('/src/components/levi-tour/LeviLevelUpComment.tsx')
 const { roles } = await server.ssrLoadModule('/src/config/roles.ts')
 
 const roleIds = ['product_manager', 'project_manager', 'sales_manager']
+
+test('Levi level reaction requires a saved level increase for the correct role', () => {
+  const before = createInitialProgression()
+  const atLevel2 = structuredClone(before)
+  atLevel2.roles.product_manager.xp = 100
+  const atLevel3 = structuredClone(before)
+  atLevel3.roles.product_manager.xp = 250
+  assert.equal(savedLevelUp(before, atLevel2, atLevel2, 'product_manager'), 2)
+  assert.equal(savedLevelUp(atLevel2, atLevel3, atLevel3, 'product_manager'), 3)
+  assert.equal(savedLevelUp(before, atLevel3, atLevel3, 'product_manager'), 3)
+  assert.equal(savedLevelUp(atLevel3, atLevel3, atLevel3, 'product_manager'), null)
+  assert.equal(savedLevelUp(before, atLevel2, before, 'product_manager'), null)
+  assert.equal(savedLevelUp(before, atLevel2, atLevel2, 'sales_manager'), null)
+})
+
+test('level-up comments use the approved text and do not render without a new event', () => {
+  const props = { root: { current: null }, onConsumed() {} }
+  assert.equal(renderToStaticMarkup(createElement(LeviLevelUpComment, { ...props, levelUp: null })), '')
+  for (const [level, text] of [
+    [2, 'Второй уровень! Уже почти не стыдно брать тебя на переговоры. Почти.'],
+    [3, 'Третий уровень? Ладно, признаю. Скоро ты сможешь договориться даже со мной.'],
+  ]) {
+    const html = renderToStaticMarkup(createElement(LeviLevelUpComment, {
+      ...props, levelUp: { level, roleId: 'product_manager', source: 'training' },
+    }))
+    assert.ok(html.includes(text))
+    assert.match(html, /aria-hidden="true"/)
+  }
+})
 const evaluationFor = (status, overallScore = 72) => ({
   outcome: { status, bossDefeated: status === 'SUCCESS' }, overallScore,
 })

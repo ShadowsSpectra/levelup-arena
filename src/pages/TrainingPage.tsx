@@ -1,9 +1,12 @@
 import { AppHeader } from '../components/AppHeader'
+import { useRef } from 'react'
+import { LeviLevelUpComment } from '../components/levi-tour/LeviLevelUpComment'
 import { AnswerFeedback } from '../components/training/AnswerFeedback'
 import { QuestionRenderer } from '../components/training/QuestionRenderer'
 import type { Role } from '../config/roles'
 import type { TrainingAward, getRoleProgress } from '../services/progression'
 import { useTrainingSession } from '../state/useTrainingSession'
+import type { LeviLevelUp } from '../state/useAppState'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 type TrainingPageProps = {
@@ -15,6 +18,8 @@ type TrainingPageProps = {
   onOpenArena: () => void
   onChangeRole: () => void
   onComplete: (result: TrainingResult, questions: TrainingQuestion[]) => TrainingAward
+  leviLevelUp?: LeviLevelUp | null
+  onLeviLevelUpConsumed?: () => void
 }
 
 export function TrainingPage({
@@ -26,8 +31,11 @@ export function TrainingPage({
   onOpenArena,
   onChangeRole,
   onComplete,
+  leviLevelUp = null,
+  onLeviLevelUpConsumed = () => {},
 }: TrainingPageProps) {
   const training = useTrainingSession(role.id, roleProgress.level, onComplete)
+  const resultRoot = useRef<HTMLElement>(null)
 
   return (
     <div className="app-shell">
@@ -134,7 +142,8 @@ export function TrainingPage({
       )}
 
       {training.status === 'result' && training.result && training.award && (
-        <main className="training-result-page">
+        <main className="training-result-page" ref={resultRoot}>
+          <LeviLevelUpComment root={resultRoot} levelUp={leviLevelUp} onConsumed={onLeviLevelUpConsumed} />
           <section className="result-summary" aria-labelledby="training-result-title">
             <span className="section-kicker">Training Result</span>
             <div className="result-score">{training.result.score}%</div>
@@ -147,7 +156,7 @@ export function TrainingPage({
             </p>
             <p>Получено за Training: {training.award.xpEarned} XP.</p>
             <div className="result-actions">
-              <button className="primary-button" type="button" onClick={training.restart}>
+              <button className="primary-button" type="button" onClick={() => { onLeviLevelUpConsumed(); training.restart() }}>
                 Пройти ещё раз
               </button>
               <button className="primary-button" type="button" onClick={onOpenArena}>

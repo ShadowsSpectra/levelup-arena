@@ -44,7 +44,8 @@ export function LeviResultCommentator({ root, sessionId, result }: {
         if (!claimed.current) {
           const claim = browserLeviCommentHistory.claim(sessionId, result)
           claimed.current = true
-          if (claim.status !== 'chosen') return
+          if (claim.status !== 'chosen') { measure!.dataset.leviResultComment = 'finished'; return }
+          measure!.dataset.leviResultComment = 'active'
           // Commit the actual toast in the same frame as the history write.
           flushSync(() => { setComment(claim.comment); setPosition(nextPosition) })
           return
@@ -71,7 +72,7 @@ export function LeviResultCommentator({ root, sessionId, result }: {
   }, [root, sessionId, category, result.overallScore])
 
   return <>
-    <div ref={probes} aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
+    <div ref={probes} data-levi-result-comment="waiting" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
       {leviResultComments[category].lines.map((line) => <aside key={line.id} className="levi-commentator">
         <div className="levi-commentator__bubble">
           <span className="levi-commentator__face" /><p>{line.text}</p>
@@ -80,6 +81,6 @@ export function LeviResultCommentator({ root, sessionId, result }: {
       </aside>)}
     </div>
     {comment && position && <LeviCommentator text={comment.text} emotion={comment.emotion} position={position}
-      onDismiss={() => { dismissed.current = true; setComment(null) }} />}
+      onDismiss={() => { dismissed.current = true; if (probes.current) probes.current.dataset.leviResultComment = 'finished'; setComment(null) }} />}
   </>
 }

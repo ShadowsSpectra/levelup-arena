@@ -1,12 +1,21 @@
 import { useState } from 'react'
 import { getRoleById, type RoleId } from '../config/roles'
-import { applyArenaCompletion, applyArenaEvaluation, applyTrainingCompletion, getRoleProgress } from '../services/progression'
+import { applyArenaCompletion, applyArenaEvaluation, applyTrainingCompletion, getRoleProgress, type ProgressionState } from '../services/progression'
 import { appStorage } from '../services/storage'
 import type { ArenaSession } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import type { TrainingQuestion, TrainingResult } from '../types/training'
 
 type Screen = 'onboarding' | 'role-selection' | 'home' | 'training' | 'arena' | 'workshop'
+
+export type LeviLevelUp = { roleId: RoleId; level: 2 | 3; source: 'training' | 'arena'; sessionId?: string }
+
+export function savedLevelUp(before: ProgressionState, updated: ProgressionState, saved: ProgressionState, roleId: RoleId): 2 | 3 | null {
+  if (saved.roles[roleId].xp !== updated.roles[roleId].xp || saved.roles[roleId].xp <= before.roles[roleId].xp) return null
+  const previousLevel = getRoleProgress(before, roleId).level
+  const nextLevel = getRoleProgress(saved, roleId).level
+  return nextLevel > previousLevel && (nextLevel === 2 || nextLevel === 3) ? nextLevel : null
+}
 
 export function initialAppState(onboardingComplete: boolean, selectedRoleId: RoleId | null): { screen: Screen; selectedRoleId: RoleId | null } {
   if (!onboardingComplete) {
@@ -22,6 +31,7 @@ export function initialAppState(onboardingComplete: boolean, selectedRoleId: Rol
 export function useAppState() {
   const [appState, setAppState] = useState(() => initialAppState(appStorage.hasCompletedLeviOnboarding(), appStorage.getSelectedRole()))
   const [progression, setProgression] = useState(appStorage.getProgression)
+  const [leviLevelUp, setLeviLevelUp] = useState<LeviLevelUp | null>(null)
   const [workshopOrigin, setWorkshopOrigin] = useState<'home' | 'arena'>('home')
   const selectedRole = getRoleById(appState.selectedRoleId)
   const roleProgress = selectedRole
@@ -41,19 +51,23 @@ export function useAppState() {
   }
 
   function changeRole() {
+    setLeviLevelUp(null)
     setAppState((current) => ({ ...current, screen: 'role-selection' }))
   }
 
   function openTraining() {
+    setLeviLevelUp(null)
     setAppState((current) => ({ ...current, screen: 'training' }))
   }
 
   function openWorkshop() {
+    setLeviLevelUp(null)
     setWorkshopOrigin(appState.screen === 'arena' ? 'arena' : 'home')
     setAppState((current) => ({ ...current, screen: 'workshop' }))
   }
 
   function openArena() {
+    setLeviLevelUp(null)
     if (appState.selectedRoleId) {
       setAppState((current) => ({ ...current, screen: 'arena' }))
     }
@@ -66,10 +80,13 @@ export function useAppState() {
   }
 
   function completeArenaEvaluation(roleId: RoleId, session: ArenaSession, result: ArenaEvaluation) {
+    const before = appStorage.getProgression()
     const { progression: updated, award } = applyArenaEvaluation(
-      appStorage.getProgression(), roleId, session, result,
+      before, roleId, session, result,
     )
     appStorage.setProgression(updated)
+    const level = savedLevelUp(before, updated, appStorage.getProgression(), roleId)
+    if (level) setLeviLevelUp({ roleId, level, source: 'arena', sessionId: session.id })
     setProgression(updated)
     return award
   }
@@ -79,6 +96,7 @@ export function useAppState() {
     result: TrainingResult,
     questions: TrainingQuestion[],
   ) {
+    const before = appStorage.getProgression()
     const { progression: updated, award } = applyTrainingCompletion(
       progression,
       roleId,
@@ -86,11 +104,14 @@ export function useAppState() {
       questions,
     )
     appStorage.setProgression(updated)
+    const level = savedLevelUp(before, updated, appStorage.getProgression(), roleId)
+    if (level) setLeviLevelUp({ roleId, level, source: 'training' })
     setProgression(updated)
     return award
   }
 
   function openHome() {
+    setLeviLevelUp(null)
     setAppState((current) => ({ ...current, screen: 'home' }))
   }
 
@@ -100,6 +121,8 @@ export function useAppState() {
     selectedRole,
     progression,
     roleProgress,
+    leviLevelUp,
+    clearLeviLevelUp: () => setLeviLevelUp(null),
     continueOnboarding,
     selectRole,
     changeRole,

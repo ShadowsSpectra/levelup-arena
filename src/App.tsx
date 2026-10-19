@@ -21,6 +21,8 @@ export function App() {
     selectedRole,
     progression,
     roleProgress,
+    leviLevelUp,
+    clearLeviLevelUp,
     continueOnboarding,
     selectRole,
     changeRole,
@@ -62,6 +64,8 @@ export function App() {
         onOpenArena={openArena}
         onChangeRole={changeRole}
         onComplete={(result, questions) => completeTraining(selectedRole.id, result, questions)}
+        leviLevelUp={leviLevelUp?.source === 'training' && leviLevelUp.roleId === selectedRole.id ? leviLevelUp : null}
+        onLeviLevelUpConsumed={clearLeviLevelUp}
       />
     )
   }
@@ -87,6 +91,8 @@ export function App() {
         onOpenAISettings={() => setAISettingsOpen(true)}
         aiSettingsVersion={aiSettingsVersion}
         onOpenWorkshop={openWorkshop}
+        leviLevelUp={leviLevelUp?.source === 'arena' && leviLevelUp.roleId === selectedRole.id ? leviLevelUp : null}
+        onLeviLevelUpConsumed={clearLeviLevelUp}
         selectionOverlay={screen === 'arena' ? <LeviArenaProduction root={arenaRoot} /> : undefined}
       />
       </div>

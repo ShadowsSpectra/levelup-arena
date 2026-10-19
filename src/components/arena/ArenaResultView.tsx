@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { LeviResultCommentator } from '../levi-tour/LeviResultCommentator'
+import { LeviLevelUpComment } from '../levi-tour/LeviLevelUpComment'
+import type { LeviLevelUp } from '../../state/useAppState'
 import { BalanceIcon, CheckCircleIcon, DialogueIcon, GrowthIcon, InitiativeIcon, LightbulbIcon, SearchIcon, SwitchIcon } from '../HeaderIcons'
 import { getRoleById } from '../../config/roles'
 import type { ArenaEvaluationState } from '../../state/useArenaFlow'
@@ -54,6 +56,8 @@ type ArenaResultViewProps = {
   onBackToSelection: () => void
   onHome: () => void
   showLeviCommentator?: boolean
+  leviLevelUp?: LeviLevelUp | null
+  onLeviLevelUpConsumed?: () => void
 }
 
 type ArenaTranscriptViewProps = Pick<ArenaResultViewProps, 'character' | 'scenario' | 'session'> & {
@@ -84,7 +88,8 @@ export function ArenaTranscriptView({ character, scenario, session, onBack }: Ar
 }
 
 export function ArenaResultView({ character, scenario, session, evaluation, onRetryEvaluation, onOpenAISettings,
-  onTryAgain, onBackToSelection, onHome, showLeviCommentator = true }: ArenaResultViewProps) {
+  onTryAgain, onBackToSelection, onHome, showLeviCommentator = true, leviLevelUp = null,
+  onLeviLevelUpConsumed = () => {} }: ArenaResultViewProps) {
   const [isViewingTranscript, setIsViewingTranscript] = useState(false)
   const [shareNotice, setShareNotice] = useState('')
   const resultRoot = useRef<HTMLElement>(null)
@@ -119,6 +124,7 @@ export function ArenaResultView({ character, scenario, session, evaluation, onRe
     <section className="arena-result" aria-labelledby="arena-result-title" ref={resultRoot}>
       {showLeviCommentator && evaluation.status === 'success' &&
         <LeviResultCommentator key={session.id} root={resultRoot} sessionId={session.id} result={evaluation.result} />}
+      {evaluation.status === 'success' && <LeviLevelUpComment root={resultRoot} levelUp={leviLevelUp} onConsumed={onLeviLevelUpConsumed} />}
       <span className="section-kicker">Arena · Результат</span>
       <h1 id="arena-result-title">Переговоры завершены</h1>
       <div className="arena-result-meta">

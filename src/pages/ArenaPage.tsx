@@ -11,6 +11,7 @@ import { createBrowserEvaluatorService } from '../services/evaluatorService'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { getRoleProgress } from '../services/progression'
 import { useArenaFlow } from '../state/useArenaFlow'
+import type { LeviLevelUp } from '../state/useAppState'
 import type { ArenaSession } from '../types/arena'
 import type { ArenaEvaluation } from '../types/arenaEvaluation'
 import { isBossUnlocked, type ArenaAward } from '../services/progression'
@@ -28,6 +29,8 @@ type ArenaPageProps = {
   aiSettingsVersion: number
   selectionOverlay?: ReactNode
   onOpenWorkshop?: () => void
+  leviLevelUp?: LeviLevelUp | null
+  onLeviLevelUpConsumed?: () => void
 }
 
 export function scrollToArenaSection(
@@ -39,7 +42,7 @@ export function scrollToArenaSection(
 }
 
 export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChangeRole, onComplete, onEvaluated,
-  onOpenAISettings, aiSettingsVersion, selectionOverlay, onOpenWorkshop }: ArenaPageProps) {
+  onOpenAISettings, aiSettingsVersion, selectionOverlay, onOpenWorkshop, leviLevelUp, onLeviLevelUpConsumed }: ArenaPageProps) {
   const [aiStatus, setAIStatus] = useState<AIStatus>('unavailable')
   const negotiationRoot = useRef<HTMLDivElement>(null)
   const scenarioSectionRef = useRef<HTMLElement>(null)
@@ -223,7 +226,9 @@ export function ArenaPage({ role, roleProgress, energy, streak, onBack, onChange
           <ArenaResultView character={arena.selected.character} scenario={arena.selected.scenario}
             session={arena.session} evaluation={arena.evaluation}
             onRetryEvaluation={arena.retryEvaluation} onOpenAISettings={onOpenAISettings} onTryAgain={startNegotiation}
-            onBackToSelection={arena.backToSelection} onHome={onBack} />
+            onBackToSelection={arena.backToSelection} onHome={onBack}
+            leviLevelUp={leviLevelUp?.sessionId === arena.session.id ? leviLevelUp : null}
+            onLeviLevelUpConsumed={onLeviLevelUpConsumed} />
         )}
       </main>
     </div>
