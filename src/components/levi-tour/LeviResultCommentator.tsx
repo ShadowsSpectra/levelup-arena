@@ -80,7 +80,7 @@ export function LeviResultCommentator({ root, sessionId, result }: {
         </div>
       </aside>)}
     </div>
-    {comment && position && <LeviCommentator text={comment.text} emotion={comment.emotion} position={position}
+    {comment && position && <LeviCommentator text={comment.text} emotion={comment.emotion} position={position} duration={7000}
       onDismiss={() => { dismissed.current = true; if (probes.current) probes.current.dataset.leviResultComment = 'finished'; setComment(null) }} />}
   </>
 }

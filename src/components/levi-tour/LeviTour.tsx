@@ -46,12 +46,13 @@ function LessonIcon({ step }: { step: HeadingIcon }) {
   </svg>
 }
 
-function LeviComment({ text, emotion }: { text: string; emotion: IconEmotion }) {
+function LeviComment({ text, emotion, keepPawsTogether = false }: { text: string; emotion: IconEmotion; keepPawsTogether?: boolean }) {
+  const paws = 'Но у меня лапки'
   return <div className="levi-tour__comment-row">
     <span className="levi-tour__comment-icon" aria-hidden="true">
       <img src={leviIconByEmotion[emotion]} alt="" />
     </span>
-    <p className="levi-tour__comment">{text}</p>
+    <p className="levi-tour__comment">{keepPawsTogether ? <>{text.slice(0, -paws.length)}<span className="levi-tour__comment-nowrap">{paws}</span></> : text}</p>
   </div>
 }
 
@@ -86,7 +87,7 @@ export function LeviTour({ greeting, reaction, homeStep, arenaStep, arenaExplana
             </> : lesson && homeStep ? <>
               <StepHeading icon={homeStep} title={lessonPresentation[homeStep].title} />
               <p>{lesson.explanation}</p>
-              <LeviComment text={lesson.leviComment} emotion={lessonPresentation[homeStep].emotion} />
+              <LeviComment text={lesson.leviComment} emotion={lessonPresentation[homeStep].emotion} keepPawsTogether={homeStep === 'energy-streak'} />
             </> : reaction ? <>
               <StepHeading icon="reaction" title="Твой выбор" />
               <LeviComment text={reaction.text} emotion={reaction.emotion} />

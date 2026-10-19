@@ -160,6 +160,18 @@ test('comment dismissal occurs at five seconds and cleanup cancels the pending t
   assert.equal(dismissed, 1)
 })
 
+test('result comment dismisses after seven seconds without changing the default', async (context) => {
+  const component = await readFile(new URL('../src/components/levi-tour/LeviResultCommentator.tsx', import.meta.url), 'utf8')
+  assert.match(component, /<LeviCommentator[^>]*duration=\{7000\}/)
+  context.mock.timers.enable({ apis: ['setTimeout'] })
+  let dismissed = false
+  scheduleCommentatorDismiss(() => { dismissed = true }, 7000)
+  context.mock.timers.tick(6999)
+  assert.equal(dismissed, false)
+  context.mock.timers.tick(1)
+  assert.equal(dismissed, true)
+})
+
 test('preview uses distinct React keys and dismissal does not claim the same session again', async (context) => {
   const preview = await readFile(new URL('../src/dev/mascot/leviResultPreview.tsx', import.meta.url), 'utf8')
   assert.match(preview, /<LeviCommentator key=\{`comment-\$\{current\.id\}`\}/)

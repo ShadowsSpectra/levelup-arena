@@ -15,6 +15,7 @@
 .levi-tour__comment-icon { --levi-face-offset-x: -3px; --levi-face-offset-y: 5px; display: block; position: relative; width: 36px; height: 36px; flex: 0 0 36px; overflow: hidden; border: 1px solid #d8e2f7; border-radius: 50%; background: #fff; }
 .levi-tour__comment-icon img { position: absolute; top: 50%; left: 50%; width: 46px; height: 46px; max-width: none; object-fit: contain; object-position: center; transform: translate(calc(-50% + var(--levi-face-offset-x)), calc(-50% + var(--levi-face-offset-y))); }
 .levi-tour__comment { min-width: 0; font-style: italic; color: #596682; }
+@media (min-width: 1025px) { .levi-tour__comment-nowrap { white-space: nowrap; } }
 @keyframes levi-message-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .levi-tour__message { animation: none; }

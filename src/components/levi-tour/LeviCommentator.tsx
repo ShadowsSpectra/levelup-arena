@@ -3,18 +3,18 @@ import type { MascotState } from '../mascot/Mascot'
 import { resultCommentPosition, type Position } from '../../services/leviResultPosition'
 import './leviCommentator.css'
 
-export function scheduleCommentatorDismiss(onDismiss: () => void) {
-  const timer = setTimeout(onDismiss, 5000)
+export function scheduleCommentatorDismiss(onDismiss: () => void, duration = 5000) {
+  const timer = setTimeout(onDismiss, duration)
   return () => clearTimeout(timer)
 }
 
-export function LeviCommentator({ text, emotion, onDismiss, position }: { text: string; emotion: MascotState; onDismiss: () => void; position?: Position }) {
+export function LeviCommentator({ text, emotion, onDismiss, position, duration = 5000 }: { text: string; emotion: MascotState; onDismiss: () => void; position?: Position; duration?: number }) {
   const dismiss = useRef(onDismiss)
   dismiss.current = onDismiss
   const panel = useRef<HTMLElement>(null)
   const [previewPosition, setPreviewPosition] = useState<Position | null>(null)
 
-  useEffect(() => scheduleCommentatorDismiss(() => dismiss.current()), [])
+  useEffect(() => scheduleCommentatorDismiss(() => dismiss.current(), duration), [duration])
 
   useEffect(() => {
     if (position) return
