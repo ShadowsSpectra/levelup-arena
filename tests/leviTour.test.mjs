@@ -369,6 +369,10 @@ test('Home uses real role progression and exposes targets without changing its a
   const props = { role: getRoleById('sales_manager'), roleProgress: getRoleProgress(progression, 'sales_manager'), energy: 3, streak: 5,
     onChangeRole() {}, onOpenArena() {}, onOpenTraining() {}, onOpenAISettings() {} }
   const html = renderToStaticMarkup(createElement(RoleHomePage, props))
+  const guidedHome = renderToStaticMarkup(createElement(RoleHomePage, { ...props, leviGuideActive: true }))
+  const completedHome = renderToStaticMarkup(createElement(RoleHomePage, { ...props, leviGuideActive: false }))
+  assert.ok(!guidedHome.includes('sleeping-levi__button'))
+  assert.ok(completedHome.includes('sleeping-levi__button'))
   for (const target of ['level-xp', 'energy', 'streak', 'training', 'arena', 'arena-entry']) assert.ok(html.includes(`data-tour="${target}"`))
   assert.deepEqual(leviHomeSteps.arena.targets, ['arena'])
   const arena = html.match(/<article[^>]*data-tour="arena"[^>]*>(.*?)<\/article>/s)?.[1]

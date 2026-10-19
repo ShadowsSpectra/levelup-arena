@@ -131,7 +131,7 @@ export function RoleHomePage({
           </div>
         </section>
         <button className="text-button ai-settings-entry" type="button" onClick={onOpenAISettings}>AI Settings</button>
-        <SleepingLevi guideActive={leviGuideActive} />
+        {!leviGuideActive && <SleepingLevi guideActive={leviGuideActive} />}
       </main>
     </div>
   )
